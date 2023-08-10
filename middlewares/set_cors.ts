@@ -18,7 +18,7 @@ export function setCORS(origin: string = "*") {
     ctx.res.headers.set("Access-Control-Allow-Origin", origin);
     ctx.res.headers.set(
       "Access-Control-Allow-Methods",
-      "GET,PUT,POST,DELETE,PATCH,OPTIONS",
+      "GET,PUT,POST,DELETE,PATCH,HEAD,OPTIONS",
     );
     ctx.res.headers.set("Access-Control-Allow-Headers", "*, Authorization");
     await next();
