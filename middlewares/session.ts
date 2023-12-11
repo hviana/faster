@@ -109,7 +109,7 @@ export function session(
       const session_data = await engine.get(key);
       if (session_data) {
         hasSession = true;
-        ctx.extra.session = session_data.value;
+        ctx.extra.session = session_data;
       }
     }
     ctx.postProcessors.add(async (ctx: Context) => {
