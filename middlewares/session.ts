@@ -103,7 +103,7 @@ export function session(
       await engine.init();
     }
     var key = getCookies(ctx.req.headers).faster_session_id;
-    ctx.extra.session = {};
+    ctx.extra.session = { value: {} };
     var hasSession = false;
     if (key) {
       const session_data = await engine.get(key);
@@ -113,7 +113,7 @@ export function session(
       }
     }
     ctx.postProcessors.add(async (ctx: Context) => {
-      if ((Object.keys(ctx.extra.session).length > 0) || hasSession) {
+      if ((Object.keys(ctx.extra.session.value).length > 0) || hasSession) {
         if (!key) {
           key = crypto.randomUUID();
           setCookie(ctx.res.headers, { name: "faster_session_id", value: key });
