@@ -118,10 +118,8 @@ export function session(
           key = crypto.randomUUID();
           setCookie(ctx.res.headers, { name: "faster_session_id", value: key });
         }
-        await engine.set({
-          key: key,
-          value: ctx.extra.session,
-        });
+        ctx.extra.session["key"] = key;
+        await engine.set(ctx.extra.session);
       } else {
         if (key) {
           deleteCookie(ctx.res.headers, "faster_session_id");
