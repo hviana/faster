@@ -10,7 +10,7 @@ import { crypto, deleteCookie, getCookies, setCookie } from "../deps.ts";
 
 export type Session = {
   key: string;
-  value: Params;
+  value: any;
   created?: number;
 };
 
@@ -87,7 +87,9 @@ export class KVStorageEngine extends SessionStorageEngine {
     const session: Session =
       (await this.kvDatabase.get(["faster_sessions", key])).value;
     if (this.slidingExpiration > 0) {
-      await this.set(session);
+      if (session) {
+        await this.set(session);
+      }
     }
     return session;
   }
