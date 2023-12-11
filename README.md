@@ -45,15 +45,15 @@ The middleware is built on top of Deno's native HTTP APIs, see the benchmarks
 
 **Machine**: 8 GiB, Intel® Core™ i5-10210U CPU @ 2.11GHz × 4
 
-**method**: `autocannon -c 100 -d 40 -p 10 localhost:80`. Deno v1.19.3, Ubuntu
-20.04 LTS.
+**method**: `autocannon -c 100 -d 40 -p 10 localhost:80`. Deno v1.38.5, Ubuntu
+22.04.3 LTS.
 
 | Framework  | Version | Router? |                                   Results |
 | ---------- | :-----: | :-----: | ----------------------------------------: |
-| Express    | 4.17.3  |    ✓    |       167k requests in 40.11s, 29 MB read |
-| Fastify    | 3.27.4  |    ✓    |     1105k requests in 40.07s ,193 MB read |
-| Oak        | 10.4.0  |    ✓    |       260k requests in 40.09s, 45 MB read |
-| **Faster** | **5.7** |  **✓**  | **1432k requests in 40.17s, 250 MB read** |
+| Express    | 4.18.2  |    ✓    |       167k requests in 40.11s, 29 MB read |
+| Fastify    | 4.24.3  |    ✓    |     1105k requests in 40.07s ,193 MB read |
+| Oak        | 12.6.1  |    ✓    |       260k requests in 40.09s, 45 MB read |
+| **Faster** | **8.2** |  **✓**  | **1432k requests in 40.17s, 250 MB read** |
 
 Note that in addition to performance, Faster is a very complete framework
 considering its middleware collection.
