@@ -337,21 +337,19 @@ server.get(
 );
 ```
 
-The default engine uses SQLite and is optimized. The engine does not use a fixed
-periodic timer to check validity. The engine uses indexes and also does not loop
-through the database.
+The default engine uses Deno KV and is optimized.
 
 #### Absolute Expiration
 
 The object in the Cache will expire on a certain date, from the moment of
 insertion of the object in the Cache, regardless of its use or not. The value
-`0` disables this type of expiration.
+(in minutes) `0` disables this type of expiration.
 
 #### Sliding Expiration
 
 The object in Cache will expire after the configured time, from the last request
-of the object in Cache (`get` or `set`). The value `0` disables this type of
-expiration.
+of the object in Cache (`get` or `set`). The value (in minutes) `0` disables
+this type of expiration.
 
 #### Interface
 
@@ -364,16 +362,14 @@ INTERFACE (SessionStorageEngine):
 ```
 constructor(
   slidingExpiration: number = 0,
-  absoluteExpiration: number = 0,
-  onDeletedByExpiration: ((data: any) => void | Promise<void>) | undefined =
-    undefined,
+  absoluteExpiration: number = 0
 )
 ```
 
 DEFAULT VALUES:
 
 ```
-session(engine: SessionStorageEngine = new SQLiteStorageEngine()) //default is 60 min slidingExpiration
+session(engine: SessionStorageEngine = new KVStorageEngine()) //default is 60 min slidingExpiration
 ```
 
 ### Proxy
@@ -541,6 +537,7 @@ import {
   deleteCookie, //alias to deno std
   getCookies, //alias to deno std
   getSetCookies, //alias to deno std
+  KVStorageEngine,
   logger,
   NextFunc, //type
   Params, //type
@@ -560,7 +557,6 @@ import {
   SessionStorageEngine,
   setCookie, //alias to deno std
   setCORS,
-  SQLiteStorageEngine,
   Token,
   upload,
 } from "https://deno.land/x/faster/mod.ts";

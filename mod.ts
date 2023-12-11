@@ -8,9 +8,9 @@ export { setCORS } from "./middlewares/set_cors.ts";
 export { Token } from "./middlewares/token.ts";
 export { upload } from "./middlewares/upload.ts";
 export {
+  KVStorageEngine,
   session,
   SessionStorageEngine,
-  SQLiteStorageEngine,
 } from "./middlewares/session.ts";
 export type { Session } from "./middlewares/session.ts";
 

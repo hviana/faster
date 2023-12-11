@@ -6,30 +6,21 @@ cel: +55 (41) 99999-4664
 */
 
 import { Context, NextFunc, Params, ProcessorFunc } from "../server.ts";
-import {
-  crypto,
-  deleteCookie,
-  getCookies,
-  setCookie,
-  storage,
-} from "../deps.ts";
+import { crypto, deleteCookie, getCookies, setCookie } from "../deps.ts";
 
 export type Session = {
   key: string;
   value: Params;
+  created?: number;
 };
 
 export class SessionStorageEngine {
   slidingExpiration: number = 0;
   absoluteExpiration: number = 0;
-  onDeletedByExpiration: ((data: any) => void | Promise<void>) | undefined =
-    undefined;
   initialized: boolean = false;
   constructor(
     slidingExpiration: number = 0,
     absoluteExpiration: number = 0,
-    onDeletedByExpiration: ((data: any) => void | Promise<void>) | undefined =
-      undefined,
   ) {
     if (absoluteExpiration > 0 && slidingExpiration > 0) {
       if (absoluteExpiration < slidingExpiration) {
@@ -38,7 +29,6 @@ export class SessionStorageEngine {
         );
       }
     }
-    this.onDeletedByExpiration = onDeletedByExpiration;
     this.slidingExpiration = slidingExpiration;
     this.absoluteExpiration = absoluteExpiration;
   }
@@ -53,33 +43,58 @@ export class SessionStorageEngine {
   }
 }
 
-export class SQLiteStorageEngine extends SessionStorageEngine {
+export class KVStorageEngine extends SessionStorageEngine {
+  kvDatabase: any;
   constructor(
     slidingExpiration: number = 60,
     absoluteExpiration: number = 0,
-    onDeletedByExpiration: ((data: any) => void | Promise<void>) | undefined =
-      undefined,
   ) {
-    super(slidingExpiration, absoluteExpiration, onDeletedByExpiration);
+    super(slidingExpiration, absoluteExpiration);
   }
-  async init(): Promise<void> {
-    await storage.setCacheConfigs(
-      this.slidingExpiration * 60 * 1000,
-      this.absoluteExpiration * 60 * 1000,
-      this.onDeletedByExpiration,
-    );
+  public async init() {
+    this.kvDatabase = await Deno.openKv();
     this.initialized = true;
   }
   async set(session: Session): Promise<void> {
-    return await storage.set(`faster_sessions.${session.key}`, session);
+    const key = ["faster_sessions", session.key];
+    var newEntry = false;
+    if (session.created == undefined) {
+      session.created = Date.now();
+      newEntry = true;
+    } else {
+      if (this.slidingExpiration > 0 && this.absoluteExpiration > 0) {
+        if (
+          ((Date.now() - session.created) / 1000 / 60) >=
+            this.absoluteExpiration
+        ) {
+          return await this.kvDatabase.delete(key);
+        }
+      }
+    }
+    if (this.slidingExpiration > 0) {
+      return await this.kvDatabase.set(key, session, {
+        expireIn: this.slidingExpiration * 1000 * 60,
+      });
+    } else if (this.absoluteExpiration > 0 && newEntry) {
+      return await this.kvDatabase.set(key, session, {
+        expireIn: this.absoluteExpiration * 1000 * 60,
+      });
+    } else {
+      return await this.kvDatabase.set(key, session);
+    }
   }
   async get(key: string): Promise<Session> {
-    return await storage.get(`faster_sessions.${key}`);
+    const session: Session =
+      (await this.kvDatabase.get(["faster_sessions", key])).value;
+    if (this.slidingExpiration > 0) {
+      await this.set(session);
+    }
+    return session;
   }
 }
 
 export function session(
-  engine: SessionStorageEngine = new SQLiteStorageEngine(60),
+  engine: SessionStorageEngine = new KVStorageEngine(60),
 ) {
   return async (ctx: Context, next: NextFunc) => {
     if (!engine.initialized) {
