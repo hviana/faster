@@ -537,7 +537,7 @@ Example, main file:
 import { Server } from "https://deno.land/x/faster/mod.ts";
 import exampleRoutes from "./example_routes.ts";
 const server = new Server();
-exampleRoutes(server);
+exampleRoutes("example", server);
 await server.listen({ port: 80 });
 ```
 
@@ -545,9 +545,9 @@ Secondary route file:
 
 ```typescript
 import { req, res, Server } from "https://deno.land/x/faster/mod.ts";
-export default function exampleRoutes(server: Server) {
+export default function exampleRoutes(namespace: string, server: Server) {
   server.post(
-    "example/json",
+    `${namespace}/json`,
     res("json"),
     req("json"),
     async (ctx: any, next: any) => {
@@ -557,7 +557,7 @@ export default function exampleRoutes(server: Server) {
     },
   );
   server.get(
-    "example/html",
+    `${namespace}/html`,
     res("html"),
     async (ctx: any, next: any) => {
       ctx.res.body = `
