@@ -332,7 +332,7 @@ server.get(
   "/session_example",
   async (ctx, next) => {
     console.log(ctx.extra.session); //get session data
-    ctx.extra.session.foo = "bar"; //set session data
+    ctx.extra.session.value.foo = "bar"; //set session data (foo => "bar")
     await next();
   },
 );
