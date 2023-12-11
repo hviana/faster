@@ -31,6 +31,7 @@ need is an optimized middleware manager, all other functionality is middleware.
   - [Upload](#upload)
     - [Upload usage](#upload-usage)
     - [Upload examples in frontend and backend](#upload-examples-in-frontend-and-backend)
+- [Organizing routes in files](#organizing-routes-in-files)
 - [All imports](#all-imports)
 - [Example Deploy](#example-deploy)
   - [Create service](#create-service)
@@ -525,6 +526,56 @@ server.get("/", res("html"), async (ctx: any, next: any) => {
   await next();
 });
 await server.listen({ port: 80 });
+```
+
+## Organizing routes in files
+
+It is possible to organize routes into files using native JavaScript resources.
+Example, main file:
+
+```typescript
+import { Server } from "https://deno.land/x/faster/mod.ts";
+import exampleRoutes from "./example_routes.ts";
+const server = new Server();
+exampleRoutes(server);
+await server.listen({ port: 80 });
+```
+
+Secondary route file:
+
+```typescript
+import { req, res, Server } from "https://deno.land/x/faster/mod.ts";
+export default function exampleRoutes(server: Server) {
+  server.post(
+    "example/json",
+    res("json"),
+    req("json"),
+    async (ctx: any, next: any) => {
+      console.log(ctx.body);
+      ctx.res.body = { msg: "json response example" };
+      await next();
+    },
+  );
+  server.get(
+    "example/html",
+    res("html"),
+    async (ctx: any, next: any) => {
+      ctx.res.body = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="utf-8">
+                <title>title example</title>
+              </head>
+              </body>
+                HTML body example
+              <body>
+            </html>
+          `;
+      await next();
+    },
+  );
+}
 ```
 
 ## All imports
