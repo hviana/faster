@@ -1,4 +1,4 @@
-export { join, SEP } from "https://deno.land/std@0.222.1/path/mod.ts";
+export { join, SEPARATOR } from "https://deno.land/std@0.222.1/path/mod.ts";
 export {
   ensureDir,
   ensureDirSync,
