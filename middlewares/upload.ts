@@ -5,13 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import {
-  copy,
-  crypto,
-  ensureFile,
-  join,
-  readerFromStreamReader,
-} from "../deps.ts";
+import { crypto, ensureFile, join, toWritableStream } from "../deps.ts";
 import { Context, NextFunc } from "../server.ts";
 interface UploadOptions {
   path?: string;
@@ -121,9 +115,10 @@ export function upload(
           resData["url"] = encodeURI(
             filePath.replace(/\\/g, "/"),
           );
-          await copy(
-            readerFromStreamReader(fileData.stream().getReader()),
-            await Deno.open(resData["uri"], { create: true, write: true }),
+          fileData.stream().pipeTo(
+            toWritableStream(
+              await Deno.open(resData["uri"], { create: true, write: true }),
+            ),
           );
           if (readFile) {
             resData["data"] = await Deno.readFile(resData["uri"]);

@@ -1,4 +1,4 @@
-export { join, SEPARATOR } from "https://deno.land/std@0.222.1/path/mod.ts";
+export { join } from "https://deno.land/std@0.222.1/path/mod.ts";
 export {
   ensureDir,
   ensureDirSync,
@@ -8,10 +8,9 @@ export {
 } from "https://deno.land/std@0.222.1/fs/mod.ts";
 export { crypto } from "https://deno.land/std@0.222.1/crypto/mod.ts";
 export {
-  copy,
-  readableStreamFromReader,
-  readerFromStreamReader,
-} from "https://deno.land/std@0.222.1/streams/mod.ts";
+  toReadableStream,
+  toWritableStream,
+} from "https://deno.land/std@0.222.1/io/mod.ts";
 export {
   generateSecret,
   jwtVerify,

@@ -6,7 +6,7 @@ cel: +55 (41) 99999-4664
 */
 
 import { Context, NextFunc } from "../server.ts";
-import { join, readableStreamFromReader } from "../deps.ts";
+import { join, toReadableStream } from "../deps.ts";
 export function serveStatic(root: string) {
   return async (ctx: Context, next: NextFunc) => {
     try {
@@ -14,7 +14,7 @@ export function serveStatic(root: string) {
         join(root, ctx.params[Object.keys(ctx.params)[0]]),
         { read: true },
       );
-      ctx.res.body = readableStreamFromReader(file);
+      ctx.res.body = toReadableStream(file);
       await next();
     } catch (e) {
       ctx.res.status = 404;
