@@ -812,6 +812,7 @@ import {
   FileStatus,
   getCookies, // Alias to Deno std
   getSetCookies, // Alias to Deno std
+  jose, // jsr port of deno panva/jose
   KVStorageEngine,
   logger,
   NextFunc, // Type

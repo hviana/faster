@@ -1,0 +1,48 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@hviana/deno-kv-fs@1": "1.0.1",
+    "jsr:@std/async@^1.0.7": "1.0.7",
+    "jsr:@std/bytes@^1.0.2": "1.0.2",
+    "jsr:@std/crypto@^1.0.3": "1.0.3",
+    "jsr:@std/fs@^1.0.5": "1.0.5",
+    "jsr:@std/http@^1.0.9": "1.0.9",
+    "jsr:@std/io@0.225": "0.225.0",
+    "jsr:@std/path@^1.0.7": "1.0.7"
+  },
+  "jsr": {
+    "@hviana/deno-kv-fs@1.0.1": {
+      "integrity": "0872a7fb200cb3a716ec0314a8fbe8869e43d173a5ad82350f3cc3c8388d6bf1",
+      "dependencies": [
+        "jsr:@std/async"
+      ]
+    },
+    "@std/async@1.0.7": {
+      "integrity": "f4fadc0124432e37cba11e8b3880164661a664de00a65118d976848f32f96290"
+    },
+    "@std/bytes@1.0.2": {
+      "integrity": "fbdee322bbd8c599a6af186a1603b3355e59a5fb1baa139f8f4c3c9a1b3e3d57"
+    },
+    "@std/crypto@1.0.3": {
+      "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
+    },
+    "@std/fs@1.0.5": {
+      "integrity": "41806ad6823d0b5f275f9849a2640d87e4ef67c51ee1b8fb02426f55e02fd44e",
+      "dependencies": [
+        "jsr:@std/path"
+      ]
+    },
+    "@std/http@1.0.9": {
+      "integrity": "d409fc319a5e8d4a154e576c758752e9700282d74f31357a12fec6420f9ecb6c"
+    },
+    "@std/io@0.225.0": {
+      "integrity": "c1db7c5e5a231629b32d64b9a53139445b2ca640d828c26bf23e1c55f8c079b3",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
+    },
+    "@std/path@1.0.7": {
+      "integrity": "76a689e07f0e15dcc6002ec39d0866797e7156629212b28f27179b8a5c3b33a1"
+    }
+  }
+}
