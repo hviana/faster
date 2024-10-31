@@ -836,7 +836,7 @@ import {
   setCORS,
   Token,
   upload,
-} from "https://deno.land/x/faster/mod.ts";
+} from "jsr:@hviana/faster";
 ```
 
 ---
