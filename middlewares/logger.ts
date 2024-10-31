@@ -5,7 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc, Server } from "../server.ts";
+import { Context, NextFunc, RouteFn, Server } from "../server.ts";
 import { DenoKvFs } from "../deps.ts";
 
 export class FasterLog {
@@ -50,7 +50,7 @@ export class FasterLog {
   }
 }
 
-export function logger(salve: boolean = true, print: boolean = true) {
+export function logger(salve: boolean = true, print: boolean = true): RouteFn {
   return async function (ctx: Context, next: NextFunc) {
     const entry = `${ctx.req.method} ${ctx.url.toString()} ${
       JSON.stringify(ctx.info.remoteAddr)

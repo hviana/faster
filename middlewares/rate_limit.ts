@@ -5,7 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc } from "../server.ts";
+import { Context, NextFunc, RouteFn } from "../server.ts";
 
 interface RateLimitOptions {
   attempts?: number;
@@ -37,7 +37,7 @@ function clearMap(
 }
 export function rateLimit(
   options: RateLimitOptions = defaultRateLimitOptions,
-) {
+): RouteFn {
   const mergedOptions = { ...defaultRateLimitOptions, ...options };
   const {
     attempts,

@@ -5,8 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc, Server } from "../server.ts";
-import { DenoKvFs } from "../deps.ts";
+import { Context, NextFunc, RouteFn, Server } from "../server.ts";
 
 interface UploadOptions {
   allowedExtensions?: (ctx: Context) => Promise<Array<string>> | Array<string>;
@@ -51,7 +50,7 @@ const defaultDownloadOptions: DownloadOptions = {
 
 function upload(
   options: UploadOptions = defaultUploadOptions,
-) {
+): RouteFn {
   const mergedOptions = { ...defaultUploadOptions, ...options };
   const {
     allowedExtensions,
@@ -125,7 +124,7 @@ function upload(
 
 function download(
   options: DownloadOptions = defaultDownloadOptions,
-) {
+): RouteFn {
   const mergedOptions = { ...defaultDownloadOptions, ...options };
   const {
     chunksPerSecond,

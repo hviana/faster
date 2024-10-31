@@ -531,6 +531,7 @@ session(engine: SessionStorageEngine = new KVStorageEngine()) // Default is 60 m
 ```typescript
 // You can also use useAtBeginning
 server.use(proxy({ url: "https://my-url-example.com" }));
+server.use(proxy({ url: async (ctx) => "https://my-url-example.com" }));
 ```
 
 **In Routes:**

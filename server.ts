@@ -46,22 +46,22 @@ export class Context {
     status: 200,
     statusText: "",
   };
-  get info() {
+  get info(): Deno.ServeHandlerInfo {
     return this.#info;
   }
-  get params() {
+  get params(): Params {
     return this.#params;
   }
-  get url() {
+  get url(): URL {
     return this.#url;
   }
-  get extra() {
+  get extra(): any {
     return this.#extra;
   }
-  get postProcessors() {
+  get postProcessors(): Set<ProcessorFunc> {
     return this.#postProcessors;
   }
-  redirect(...params: any[]) {
+  redirect(...params: any[]): void {
     this.postProcessors.add((ctx: Context) => {
       if (params.length < 2) {
         params.unshift(302);
@@ -150,19 +150,19 @@ export class Server {
   #routes: Route[] = [];
   //@ts-ignore
   server: Deno.HttpServer;
-  openedSockets = new Map();
+  openedSockets: Map<any, any> = new Map();
 
   // NOTE: Using .bind can significantly increase perf compared to arrow functions.
-  public all = this.#add.bind(this, "ALL");
-  public get = this.#add.bind(this, "GET");
-  public head = this.#add.bind(this, "HEAD");
-  public patch = this.#add.bind(this, "PATCH");
-  public options = this.#add.bind(this, "OPTIONS");
-  public connect = this.#add.bind(this, "CONNECT");
-  public delete = this.#add.bind(this, "DELETE");
-  public trace = this.#add.bind(this, "TRACE");
-  public post = this.#add.bind(this, "POST");
-  public put = this.#add.bind(this, "PUT");
+  public all: Function = this.#add.bind(this, "ALL");
+  public get: Function = this.#add.bind(this, "GET");
+  public head: Function = this.#add.bind(this, "HEAD");
+  public patch: Function = this.#add.bind(this, "PATCH");
+  public options: Function = this.#add.bind(this, "OPTIONS");
+  public connect: Function = this.#add.bind(this, "CONNECT");
+  public delete: Function = this.#add.bind(this, "DELETE");
+  public trace: Function = this.#add.bind(this, "TRACE");
+  public post: Function = this.#add.bind(this, "POST");
+  public put: Function = this.#add.bind(this, "PUT");
 
   public resetRoutes() {
     this.#routes = [];
@@ -180,7 +180,7 @@ export class Server {
   onSocketClosed = async (id: string, socket: WebSocket): Promise<any> => {
   };
 
-  public useAtBeginning(...handlers: RouteFn[]) {
+  public useAtBeginning(...handlers: RouteFn[]): Server {
     this.#routes.unshift({
       keys: [],
       method: "ALL",
@@ -189,7 +189,7 @@ export class Server {
     return this;
   }
 
-  public use(...handlers: RouteFn[]) {
+  public use(...handlers: RouteFn[]): Server {
     this.#routes.push({
       keys: [],
       method: "ALL",
@@ -229,7 +229,10 @@ export class Server {
     }
   }
 
-  async serverHandler(request: Request, info: Deno.ServeHandlerInfo) {
+  async serverHandler(
+    request: Request,
+    info: Deno.ServeHandlerInfo,
+  ): Promise<Response> {
     try {
       const req = request;
       const url = new URL(request.url);

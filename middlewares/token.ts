@@ -9,23 +9,23 @@ import { Context, NextFunc } from "../server.ts";
 import { generateSecret, jwtVerify, SignJWT } from "../deps.ts";
 const randomKey = await generateSecret("HS256");
 export class Token {
-  static #configs: any = {
+  static _configs: any = {
     key: randomKey,
     issuer: "urn:faster:issuer",
     audience: "urn:faster:audience",
     alg: "HS256",
     oneHour: "1h",
   };
-  static setConfigs(configs: any) {
-    Token.#configs = { ...Token.#configs, ...configs };
+  static setConfigs(configs: any): void {
+    Token._configs = { ...Token._configs, ...configs };
   }
-  static setSecret(secret: string) {
-    Token.#configs.key = (new TextEncoder()).encode(secret);
+  static setSecret(secret: string): void {
+    Token._configs.key = (new TextEncoder()).encode(secret);
   }
-  static async getPayload(token: string) {
+  static async getPayload(token: string): Promise<any> {
     const { payload, protectedHeader } = await jwtVerify(
       token,
-      Token.#configs.key,
+      Token._configs.key,
     );
     return payload;
   }
@@ -47,15 +47,18 @@ export class Token {
       });
     }
   }
-  static async generate(data: any = {}, exp = Token.#configs.oneHour) {
+  static async generate(
+    data: any = {},
+    exp = Token._configs.oneHour,
+  ): Promise<string> {
     const jwt = await new SignJWT(data)
-      .setProtectedHeader({ alg: Token.#configs.alg })
+      .setProtectedHeader({ alg: Token._configs.alg })
       .setIssuedAt()
-      .setIssuer(Token.#configs.issuer)
-      .setAudience(Token.#configs.audience);
+      .setIssuer(Token._configs.issuer)
+      .setAudience(Token._configs.audience);
     if (exp) {
       jwt.setExpirationTime(exp);
     }
-    return jwt.sign(Token.#configs.key);
+    return jwt.sign(Token._configs.key);
   }
 }

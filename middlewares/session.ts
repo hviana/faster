@@ -5,7 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc, Server } from "../server.ts";
+import { Context, NextFunc, RouteFn, Server } from "../server.ts";
 import { crypto, deleteCookie, getCookies, setCookie } from "../deps.ts";
 
 export type Session = {
@@ -94,7 +94,7 @@ export class KVStorageEngine extends SessionStorageEngine {
 
 export function session(
   engine: SessionStorageEngine = new KVStorageEngine(60),
-) {
+): RouteFn {
   return async (ctx: Context, next: NextFunc) => {
     if (!engine.initialized) {
       await engine.init();

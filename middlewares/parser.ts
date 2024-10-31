@@ -5,7 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc, ProcessorFunc } from "../server.ts";
+import { Context, NextFunc, ProcessorFunc, RouteFn } from "../server.ts";
 const reqParsers: { [key: string]: ProcessorFunc } = {};
 const resParsers: { [key: string]: ProcessorFunc } = {
   "json": (ctx: Context) => {
@@ -22,7 +22,7 @@ const resParsers: { [key: string]: ProcessorFunc } = {
   },
 };
 
-export function res(type: string) {
+export function res(type: string): RouteFn {
   return async (ctx: Context, next: NextFunc) => {
     if (!resParsers[type]) {
       throw new Error(`Response body parser: '${type}' not supported.`);
@@ -31,7 +31,7 @@ export function res(type: string) {
     await next();
   };
 }
-export function req(type: string) {
+export function req(type: string): RouteFn {
   return async (ctx: Context, next: NextFunc) => {
     if (ctx.req.bodyUsed) {
       return;

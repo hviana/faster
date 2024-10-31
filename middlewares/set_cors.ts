@@ -5,10 +5,10 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc } from "../server.ts";
+import { Context, NextFunc, RouteFn } from "../server.ts";
 
 //server.options("/path",setCORS()); // necessary enable pre-fligh request on "/path"
-export function setCORS(origin: string = "*") {
+export function setCORS(origin: string = "*"): RouteFn {
   return async (ctx: Context, next: NextFunc) => {
     ctx.res.headers.set(
       "Access-Control-Expose-Headers",
