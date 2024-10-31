@@ -8,7 +8,6 @@ export const encodeBase64 = (input: Uint8Array | string) => {
   const CHUNK_SIZE = 0x8000;
   const arr = [];
   for (let i = 0; i < unencoded.length; i += CHUNK_SIZE) {
-    // @ts-expect-error
     arr.push(
       String.fromCharCode.apply(null, unencoded.subarray(i, i + CHUNK_SIZE)),
     );
