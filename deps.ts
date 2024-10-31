@@ -16,7 +16,7 @@ export {
 } from "jsr:@std/fs@^1.0.5";
 export { crypto } from "jsr:@std/crypto@^1.0.3";
 export { toReadableStream, toWritableStream } from "jsr:@std/io@^0.225.0";
-export { generateSecret, jwtVerify, SignJWT } from "jose/index.ts";
+export { generateSecret, jwtVerify, SignJWT } from "./vendor/jose/index.ts";
 
 export type { Cookie } from "jsr:@std/http@^1.0.9/cookie";
 

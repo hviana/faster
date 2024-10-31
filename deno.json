@@ -1,8 +1,5 @@
 {
   "name": "@hviana/faster",
   "version": "1.0.0",
-  "exports": "./mod.ts",
-  "imports": {
-    "jose/": "https://deno.land/x/jose@5.9.6/"
-  }
+  "exports": "./mod.ts"
 }
