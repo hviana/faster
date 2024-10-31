@@ -17,7 +17,7 @@ export {
 export { crypto } from "jsr:@std/crypto@^1.0.3";
 export { toReadableStream, toWritableStream } from "jsr:@std/io@^0.225.0";
 
-//remove // @ts-expect-error from vendor/jose/runtime/base64url.ts:11:5
+//remove // @ts-expect-error from vendor/jose/runtime/base64url.ts:11:5 -> add //@ts-ignore
 export { generateSecret, jwtVerify, SignJWT } from "./vendor/jose/index.ts";
 
 export type { Cookie } from "jsr:@std/http@^1.0.9/cookie";
