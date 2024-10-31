@@ -1,4 +1,4 @@
-export { join } from "jsr:@std/path";
+export { join } from "jsr:@std/path@^1.0.7";
 export {
   DenoKvFs,
   type DirList,
@@ -6,27 +6,27 @@ export {
   type FileStatus,
   type ReadOptions,
   type SaveOptions,
-} from "https://deno.land/x/deno_kv_fs/mod.ts";
+} from "jsr:@hviana/deno-kv-fs@^1.0.0";
 export {
   ensureDir,
   ensureDirSync,
   ensureFile,
   ensureFileSync,
   move,
-} from "jsr:@std/fs";
-export { crypto } from "jsr:@std/crypto";
-export { toReadableStream, toWritableStream } from "jsr:@std/io";
+} from "jsr:@std/fs@^1.0.5";
+export { crypto } from "jsr:@std/crypto@^1.0.3";
+export { toReadableStream, toWritableStream } from "jsr:@std/io@^0.225.0";
 export {
   generateSecret,
   jwtVerify,
   SignJWT,
-} from "https://deno.land/x/jose@v5.8.0/index.ts";
+} from "https://deno.land/x/jose@v5.9.6/index.ts";
 
-export type { Cookie } from "jsr:@std/http/cookie";
+export type { Cookie } from "jsr:@std/http@^1.0.9/cookie";
 
 export {
   deleteCookie,
   getCookies,
   getSetCookies,
   setCookie,
-} from "jsr:@std/http/cookie";
+} from "jsr:@std/http@^1.0.9/cookie";
