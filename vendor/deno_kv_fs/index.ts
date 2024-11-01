@@ -1,2 +1,8 @@
-import { deno_kv_fs } from "../../deps.ts";
-export default deno_kv_fs;
+export {
+  DenoKvFs,
+  type DirList,
+  type File,
+  type FileStatus,
+  type ReadOptions,
+  type SaveOptions,
+} from "../../deps.ts";
