@@ -804,15 +804,10 @@ import {
   ContextResponse, // Type
   Cookie, // Type, alias to Deno std
   deleteCookie, // Alias to Deno std
-  DenoKvFs,
-  DirList,
   download,
   FasterLog,
-  File,
-  FileStatus,
   getCookies, // Alias to Deno std
   getSetCookies, // Alias to Deno std
-  jose, // jsr port of deno panva/jose
   KVStorageEngine,
   logger,
   NextFunc, // Type
@@ -821,13 +816,11 @@ import {
   ProcessorFunc, // Type
   proxy,
   rateLimit,
-  ReadOptions,
   redirect,
   req,
   res,
   Route, // Type
   RouteFn, // Type
-  SaveOptions,
   Server,
   serveStatic,
   Session, // Type
@@ -838,6 +831,8 @@ import {
   Token,
   upload,
 } from "jsr:@hviana/faster";
+import * as jose from "jsr:@hviana/faster/jose"; // jsr port of deno panva/jose (v5.9.6)
+import * as deno_kv_fs from "jsr:@hviana/faster/deno-kv-fs"; // Alias to jsr @hviana/deno-kv-fs (v1.0.1)
 ```
 
 ---

@@ -36,8 +36,4 @@ export {
   type SaveOptions,
 } from "./deps.ts";
 
-import * as jose from "./vendor/jose/index.ts";
-
-export { jose };
-
 export { deleteCookie, getCookies, getSetCookies, setCookie } from "./deps.ts";

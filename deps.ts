@@ -1,4 +1,5 @@
 export { join } from "jsr:@std/path@^1.0.7";
+
 export {
   DenoKvFs,
   type DirList,
@@ -6,7 +7,9 @@ export {
   type FileStatus,
   type ReadOptions,
   type SaveOptions,
-} from "jsr:@hviana/deno-kv-fs@^1.0.0";
+} from "jsr:@hviana/deno-kv-fs@^1.0.1";
+import * as deno_kv_fs from "jsr:@hviana/deno-kv-fs@^1.0.1";
+export { deno_kv_fs };
 export {
   ensureDir,
   ensureDirSync,
