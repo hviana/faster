@@ -1,6 +1,6 @@
 {
   "name": "@hviana/faster",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "exports": {
     ".": "./mod.ts",
     "./jose": "./vendor/jose/index.ts",

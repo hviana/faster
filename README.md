@@ -119,11 +119,7 @@ server.post(
 await server.listen({ port: 80 });
 
 //or with the portable command "serve":
-export default {
-  async fetch(_req: Request) {
-    return await server.serveHandler(_req);
-  },
-};
+export default { fetch: server.fetch };
 ```
 
 ---
@@ -746,11 +742,7 @@ server.get("/", res("html"), async (ctx: any, next: any) => {
 await server.listen({ port: 80 });
 
 //or with the portable command "serve":
-export default {
-  async fetch(_req: Request) {
-    return await server.serveHandler(_req);
-  },
-};
+export default { fetch: server.fetch };
 ```
 
 ---
@@ -771,11 +763,7 @@ exampleRoutes("example", server);
 await server.listen({ port: 80 });
 
 //or with the portable command "serve":
-export default {
-  async fetch(_req: Request) {
-    return await server.serveHandler(_req);
-  },
-};
+export default { fetch: server.fetch };
 ```
 
 **Secondary Route File (`example_routes.ts`):**
@@ -973,11 +961,7 @@ await server.listen({
 
 //or with the portable command "serve":
 //in this case you need to pass arguments such as port and certificate in the command.
-export default {
-  async fetch(_req: Request) {
-    return await server.serveHandler(_req);
-  },
-};
+export default { fetch: server.fetch };
 ```
 
 **Set Up Automatic Certificate Renewal:**

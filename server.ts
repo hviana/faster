@@ -369,4 +369,7 @@ export class Server {
         this.serveHandler(request),
     );
   }
+  fetch = async (_req: Request): Promise<Response> => {
+    return await this.serveHandler(_req);
+  };
 }
