@@ -78,7 +78,7 @@ The middleware is built on top of Deno's native HTTP APIs. See the benchmarks
 | Express    |  4.19.2  |    ✓    | 167k requests in 40.11s, **29 MB** read   |
 | Fastify    |  4.28.1  |    ✓    | 1105k requests in 40.07s, **193 MB** read |
 | Oak        |  17.0.0  |    ✓    | 260k requests in 40.09s, **45 MB** read   |
-| **Faster** | **11.6** |  **✓**  | **1432k requests in 40.17s, 250 MB read** |
+| **Faster** | **12.0** |  **✓**  | **1432k requests in 40.17s, 250 MB read** |
 
 > **Note:** In addition to its performance, Faster is a very complete framework
 > considering its middleware collection.
