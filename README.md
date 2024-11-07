@@ -55,7 +55,7 @@ middleware manager; all other functionality is middleware.
     - [💻 Upload Examples in Frontend and Backend](#-upload-examples-in-frontend-and-backend)
 - [📁 Organizing Routes in Files](#-organizing-routes-in-files)
 - [📦 All Imports](#-all-imports)
-- [🌐 Example Deploy](#-example-deploy)
+- [🌐 Example Deploy in Ubuntu](#-example-deploy-in-ubuntu)
   - [🛠️ Create Service](#%EF%B8%8F-create-service)
   - [🔒 Configure HTTPS](#-configure-https)
 - [💡 See Also: Faster with React](#-see-also-faster-with-react)
@@ -116,6 +116,13 @@ server.post(
 );
 
 await server.listen({ port: 80 });
+
+//or with the portable command "serve":
+export default {
+  async fetch(_req: Request) {
+    return await server.serveHandler(_req);
+  },
+};
 ```
 
 ---
@@ -224,14 +231,14 @@ rejected.
 ```typescript
 server.acceptOrRejectSocketConn = async (ctx: Context) => {
   // Returning undefined, "", null, or 0 will reject the connection.
-  return JSON.stringify(ctx.info.remoteAddr); // Return ID
+  return ctx.req.headers.get("Host"); // Return ID
 };
 ```
 
 **Retrieving the Socket by ID:**
 
 ```typescript
-server.openedSockets.get(yourId); // As in the example, JSON.stringify(ctx.info.remoteAddr)
+server.openedSockets.get(yourId); // As in the example, ctx.req.headers.get("Host")
 ```
 
 **Receiving WebSocket Events:**
@@ -247,6 +254,7 @@ server.onSocketClosed = async (id: string, socket: WebSocket) => {
   console.log(id);
   console.log(socket);
 };
+//... server.onSocketError, server.onSocketOpen
 ```
 
 ---
@@ -357,7 +365,7 @@ rateLimit({
   attempts: 30,
   interval: 10,
   maxTableSize: 100000,
-  id: (ctx: Context) => JSON.stringify(ctx.info.remoteAddr),
+  id: (ctx: Context) => ctx.req.headers.get("Host"),
 });
 ```
 
@@ -735,6 +743,13 @@ server.get("/", res("html"), async (ctx: any, next: any) => {
 });
 
 await server.listen({ port: 80 });
+
+//or with the portable command "serve":
+export default {
+  async fetch(_req: Request) {
+    return await server.serveHandler(_req);
+  },
+};
 ```
 
 ---
@@ -753,6 +768,13 @@ const server = new Server();
 exampleRoutes("example", server);
 
 await server.listen({ port: 80 });
+
+//or with the portable command "serve":
+export default {
+  async fetch(_req: Request) {
+    return await server.serveHandler(_req);
+  },
+};
 ```
 
 **Secondary Route File (`example_routes.ts`):**
@@ -837,7 +859,7 @@ import * as deno_kv_fs from "jsr:@hviana/faster/deno-kv-fs"; // Alias to jsr @hv
 
 ---
 
-## 🌐 **Example Deploy**
+## 🌐 **Example Deploy in Ubuntu**
 
 Example of deploying an application named "my-deno-app" in a Ubuntu environment.
 Change "my-deno-app" and directories to yours.
@@ -947,6 +969,14 @@ await server.listen({
     "/etc/letsencrypt/live/yourdomain.link/privkey.pem",
   ),
 });
+
+//or with the portable command "serve":
+//in this case you need to pass arguments such as port and certificate in the command.
+export default {
+  async fetch(_req: Request) {
+    return await server.serveHandler(_req);
+  },
+};
 ```
 
 **Set Up Automatic Certificate Renewal:**

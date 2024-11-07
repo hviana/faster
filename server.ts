@@ -19,7 +19,6 @@ export type ContextResponse = {
 };
 
 export class Context {
-  #info: Deno.ServeHandlerInfo;
   #params: Params;
   #url: URL;
   req: Request;
@@ -28,13 +27,11 @@ export class Context {
   error: Error | undefined = undefined;
   #postProcessors: Set<ProcessorFunc> = new Set();
   constructor(
-    info: Deno.ServeHandlerInfo,
     params: Params,
     url: URL,
     req: Request,
     hasRoute: boolean,
   ) {
-    this.#info = info;
     this.#params = params;
     this.#url = url;
     this.req = req;
@@ -46,9 +43,6 @@ export class Context {
     status: 200,
     statusText: "",
   };
-  get info(): Deno.ServeHandlerInfo {
-    return this.#info;
-  }
   get params(): Params {
     return this.#params;
   }
@@ -179,6 +173,10 @@ export class Server {
   };
   onSocketClosed = async (id: string, socket: WebSocket): Promise<any> => {
   };
+  onSocketOpen = async (id: string, socket: WebSocket): Promise<any> => {
+  };
+  onSocketError = async (id: string, socket: WebSocket): Promise<any> => {
+  };
 
   public useAtBeginning(...handlers: RouteFn[]): Server {
     this.#routes.unshift({
@@ -229,9 +227,8 @@ export class Server {
     }
   }
 
-  async serverHandler(
+  async serveHandler(
     request: Request,
-    info: Deno.ServeHandlerInfo,
   ): Promise<Response> {
     try {
       const req = request;
@@ -270,7 +267,6 @@ export class Server {
         }
       }
       const ctx = new Context(
-        info,
         params,
         url,
         req,
@@ -300,6 +296,22 @@ export class Server {
         socket.onclose = async () => {
           try {
             await this.onSocketClosed(connectId, socket);
+          } catch (e) {
+            console.log(e);
+          }
+          this.openedSockets.delete(connectId);
+        };
+        socket.onerror = async () => {
+          try {
+            await this.onSocketError(connectId, socket);
+          } catch (e) {
+            console.log(e);
+          }
+          this.openedSockets.delete(connectId);
+        };
+        socket.onopen = async () => {
+          try {
+            await this.onSocketOpen(connectId, socket);
           } catch (e) {
             console.log(e);
           }
@@ -351,10 +363,10 @@ export class Server {
     }
     this.#ac = new AbortController();
     //@ts-ignore
-    this.server = Deno.serve(
+    this.server = Deno.serveHandler(
       { ...options, signal: this.#ac.signal },
       (request: Request, info: Deno.ServeHandlerInfo) =>
-        this.serverHandler(request, info),
+        this.serveHandler(request),
     );
   }
 }
