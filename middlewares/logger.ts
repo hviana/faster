@@ -52,9 +52,8 @@ export class FasterLog {
 
 export function logger(salve: boolean = true, print: boolean = true): RouteFn {
   return async function (ctx: Context, next: NextFunc) {
-    const entry = `${ctx.req.method} ${ctx.url.toString()} ${
-      ctx.req.headers.get("Host")
-    } ${new Date().toISOString()}`;
+    const entry = `${ctx.req.method} ${ctx.url.toString()} ${ctx.req.headers
+      .get("Host")!} ${new Date().toISOString()}`;
     if (print) {
       console.log(entry);
     }

@@ -232,14 +232,14 @@ rejected.
 ```typescript
 server.acceptOrRejectSocketConn = async (ctx: Context) => {
   // Returning undefined, "", null, or 0 will reject the connection.
-  return ctx.req.headers.get("Host"); // Return ID
+  return ctx.req.headers.get("Host")!; // Return ID
 };
 ```
 
 **Retrieving the Socket by ID:**
 
 ```typescript
-server.openedSockets.get(yourId); // As in the example, ctx.req.headers.get("Host")
+server.openedSockets.get(yourId); // As in the example, ctx.req.headers.get("Host")!
 ```
 
 **Receiving WebSocket Events:**
@@ -366,7 +366,7 @@ rateLimit({
   attempts: 30,
   interval: 10,
   maxTableSize: 100000,
-  id: (ctx: Context) => ctx.req.headers.get("Host"),
+  id: (ctx: Context) => ctx.req.headers.get("Host")!,
 });
 ```
 

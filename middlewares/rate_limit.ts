@@ -18,7 +18,7 @@ const defaultRateLimitOptions: RateLimitOptions = {
   attempts: 30,
   interval: 10,
   maxTableSize: 100000, //be careful, table uses a lot of memory
-  id: (ctx: Context) => ctx.req.headers.get("Host"),
+  id: (ctx: Context) => ctx.req.headers.get("Host")!,
 };
 
 function clearMap(
