@@ -8,8 +8,9 @@
 ## 🌟 Introduction
 
 **Faster** is a **fast and optimized middleware server** with an incredibly
-small codebase (~300 lines), built on top of Deno's native HTTP APIs **with no
-dependencies**. It includes a collection of useful middlewares:
+small codebase (~300 lines), built on top of native HTTP APIs **with no
+dependencies**. It includes a collection of useful middlewares (Some are
+specific to Deno):
 
 - 📄 **Log file**
 - 🗂️ **Serve static**
@@ -22,9 +23,9 @@ dependencies**. It includes a collection of useful middlewares:
 - 🔌 **Proxy**
 - 📤 **Handle upload**
 
-Fully compatible with **Deno Deploy**. Examples of all resources are available
-in this README. Faster's ideology is simple: all you need is an optimized
-middleware manager; all other functionality is middleware.
+Fully compatible with **Deno Deploy** and other environments. Examples of all
+resources are available in this README. Faster's ideology is simple: all you
+need is an optimized middleware manager; all other functionality is middleware.
 
 ---
 
