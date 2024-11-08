@@ -363,7 +363,7 @@ export class Server {
     }
     this.#ac = new AbortController();
     //@ts-ignore
-    this.server = Deno.serveHandler(
+    this.server = Deno.serve(
       { ...options, signal: this.#ac.signal },
       (request: Request, info: Deno.ServeHandlerInfo) =>
         this.serveHandler(request),
