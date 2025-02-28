@@ -842,7 +842,7 @@ import {
   Token,
   upload,
 } from "jsr:@hviana/faster";
-import * as jose from "jsr:@hviana/faster/jose"; // jsr port of deno panva/jose (v5.9.6)
+import * as jose from "jsr:@hviana/faster/jose"; // jsr port of deno panva/jose (v6.0.8)
 import * as deno_kv_fs from "jsr:@hviana/faster/deno-kv-fs"; // Alias to jsr @hviana/deno-kv-fs (v1.0.1)
 ```
 

@@ -1,22 +1,44 @@
-import { concat, uint64be } from "../lib/buffer_utils.ts";
+import { concat, uint64be } from "./buffer_utils.js";
 
-import type { DecryptFunction } from "./interfaces.d.ts";
-import checkIvLength from "../lib/check_iv_length.ts";
-import checkCekLength from "./check_cek_length.ts";
-import timingSafeEqual from "./timing_safe_equal.ts";
+import type * as types from "../types.d.ts";
+import checkIvLength from "./check_iv_length.js";
+import checkCekLength from "./check_cek_length.js";
 import {
   JOSENotSupported,
   JWEDecryptionFailed,
   JWEInvalid,
-} from "../util/errors.ts";
-import crypto, { isCryptoKey } from "./webcrypto.ts";
-import { checkEncCryptoKey } from "../lib/crypto_key.ts";
-import invalidKeyInput from "../lib/invalid_key_input.ts";
-import { types } from "./is_key_like.ts";
+} from "../util/errors.js";
+import { checkEncCryptoKey } from "./crypto_key.js";
+import invalidKeyInput from "./invalid_key_input.js";
+import { isCryptoKey } from "./is_key_like.js";
+
+async function timingSafeEqual(a: Uint8Array, b: Uint8Array): Promise<boolean> {
+  if (!(a instanceof Uint8Array)) {
+    throw new TypeError("First argument must be a buffer");
+  }
+  if (!(b instanceof Uint8Array)) {
+    throw new TypeError("Second argument must be a buffer");
+  }
+
+  const algorithm = { name: "HMAC", hash: "SHA-256" };
+  const key =
+    (await crypto.subtle.generateKey(algorithm, false, ["sign"])) as CryptoKey;
+
+  const aHmac = new Uint8Array(await crypto.subtle.sign(algorithm, key, a));
+  const bHmac = new Uint8Array(await crypto.subtle.sign(algorithm, key, b));
+
+  let out = 0;
+  let i = -1;
+  while (++i < 32) {
+    out |= aHmac[i] ^ bHmac[i];
+  }
+
+  return out === 0;
+}
 
 async function cbcDecrypt(
   enc: string,
-  cek: Uint8Array | CryptoKey,
+  cek: Uint8Array | types.CryptoKey,
   ciphertext: Uint8Array,
   iv: Uint8Array,
   tag: Uint8Array,
@@ -51,7 +73,7 @@ async function cbcDecrypt(
 
   let macCheckPassed!: boolean;
   try {
-    macCheckPassed = timingSafeEqual(tag, expectedTag);
+    macCheckPassed = await timingSafeEqual(tag, expectedTag);
   } catch {
     //
   }
@@ -76,13 +98,13 @@ async function cbcDecrypt(
 
 async function gcmDecrypt(
   enc: string,
-  cek: Uint8Array | CryptoKey,
+  cek: Uint8Array | types.CryptoKey,
   ciphertext: Uint8Array,
   iv: Uint8Array,
   tag: Uint8Array,
   aad: Uint8Array,
 ) {
-  let encKey: CryptoKey;
+  let encKey: types.CryptoKey;
   if (cek instanceof Uint8Array) {
     encKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, [
       "decrypt",
@@ -110,16 +132,24 @@ async function gcmDecrypt(
   }
 }
 
-const decrypt: DecryptFunction = async (
+export default async (
   enc: string,
   cek: unknown,
   ciphertext: Uint8Array,
   iv: Uint8Array | undefined,
   tag: Uint8Array | undefined,
   aad: Uint8Array,
-) => {
+): Promise<Uint8Array> => {
   if (!isCryptoKey(cek) && !(cek instanceof Uint8Array)) {
-    throw new TypeError(invalidKeyInput(cek, ...types, "Uint8Array"));
+    throw new TypeError(
+      invalidKeyInput(
+        cek,
+        "CryptoKey",
+        "KeyObject",
+        "Uint8Array",
+        "JSON Web Key",
+      ),
+    );
   }
 
   if (!iv) {
@@ -152,5 +182,3 @@ const decrypt: DecryptFunction = async (
       );
   }
 };
-
-export default decrypt;

@@ -1,18 +1,17 @@
-import { concat, uint64be } from "../lib/buffer_utils.ts";
-import type { EncryptFunction } from "./interfaces.d.ts";
-import checkIvLength from "../lib/check_iv_length.ts";
-import checkCekLength from "./check_cek_length.ts";
-import crypto, { isCryptoKey } from "./webcrypto.ts";
-import { checkEncCryptoKey } from "../lib/crypto_key.ts";
-import invalidKeyInput from "../lib/invalid_key_input.ts";
-import generateIv from "../lib/iv.ts";
-import { JOSENotSupported } from "../util/errors.ts";
-import { types } from "./is_key_like.ts";
+import type * as types from "../types.d.ts";
+import { concat, uint64be } from "./buffer_utils.js";
+import checkIvLength from "./check_iv_length.js";
+import checkCekLength from "./check_cek_length.js";
+import { checkEncCryptoKey } from "./crypto_key.js";
+import invalidKeyInput from "./invalid_key_input.js";
+import generateIv from "./iv.js";
+import { JOSENotSupported } from "../util/errors.js";
+import { isCryptoKey } from "./is_key_like.js";
 
 async function cbcEncrypt(
   enc: string,
   plaintext: Uint8Array,
-  cek: Uint8Array | CryptoKey,
+  cek: Uint8Array | types.CryptoKey,
   iv: Uint8Array,
   aad: Uint8Array,
 ) {
@@ -60,11 +59,11 @@ async function cbcEncrypt(
 async function gcmEncrypt(
   enc: string,
   plaintext: Uint8Array,
-  cek: Uint8Array | CryptoKey,
+  cek: Uint8Array | types.CryptoKey,
   iv: Uint8Array,
   aad: Uint8Array,
 ) {
-  let encKey: CryptoKey;
+  let encKey: types.CryptoKey;
   if (cek instanceof Uint8Array) {
     encKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, [
       "encrypt",
@@ -93,15 +92,27 @@ async function gcmEncrypt(
   return { ciphertext, tag, iv };
 }
 
-const encrypt: EncryptFunction = async (
+export default async (
   enc: string,
   plaintext: Uint8Array,
   cek: unknown,
   iv: Uint8Array | undefined,
   aad: Uint8Array,
-) => {
+): Promise<{
+  ciphertext: Uint8Array;
+  tag: Uint8Array | undefined;
+  iv: Uint8Array | undefined;
+}> => {
   if (!isCryptoKey(cek) && !(cek instanceof Uint8Array)) {
-    throw new TypeError(invalidKeyInput(cek, ...types, "Uint8Array"));
+    throw new TypeError(
+      invalidKeyInput(
+        cek,
+        "CryptoKey",
+        "KeyObject",
+        "Uint8Array",
+        "JSON Web Key",
+      ),
+    );
   }
 
   if (iv) {
@@ -131,5 +142,3 @@ const encrypt: EncryptFunction = async (
       );
   }
 };
-
-export default encrypt;

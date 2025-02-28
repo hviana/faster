@@ -1,15 +1,14 @@
-import fetchJwks from "../runtime/fetch_jwks.ts";
+/**
+ * Verification using a JSON Web Key Set (JWKS) available on an HTTP(S) URL
+ *
+ * @module
+ */
 
-import type {
-  FlattenedJWSInput,
-  JSONWebKeySet,
-  JWSHeaderParameters,
-  KeyLike,
-} from "../types.d.ts";
-import { JWKSNoMatchingKey } from "../util/errors.ts";
+import type * as types from "../types.d.ts";
+import { JOSEError, JWKSNoMatchingKey, JWKSTimeout } from "../util/errors.js";
 
-import { createLocalJWKSet } from "./local.ts";
-import isObject from "../lib/is_object.ts";
+import { createLocalJWKSet } from "./local.js";
+import isObject from "../lib/is_object.js";
 
 function isCloudflareWorkers() {
   return (
@@ -33,8 +32,165 @@ if (
   !navigator.userAgent?.startsWith?.("Mozilla/5.0 ")
 ) {
   const NAME = "jose";
-  const VERSION = "v5.9.6";
+  const VERSION = "v6.0.8";
   USER_AGENT = `${NAME}/${VERSION}`;
+}
+
+/**
+ * When passed to {@link jwks/remote.createRemoteJWKSet createRemoteJWKSet} this allows the resolver
+ * to make use of advanced fetch configurations, HTTP Proxies, retry on network errors, etc.
+ *
+ * @example
+ *
+ * Using [sindresorhus/ky](https://github.com/sindresorhus/ky) for retries and its hooks feature for
+ * logging outgoing requests and their responses.
+ *
+ * ```ts
+ * import ky from 'ky'
+ *
+ * let logRequest!: (request: Request) => void
+ * let logResponse!: (request: Request, response: Response) => void
+ * let logRetry!: (request: Request, error: Error, retryCount: number) => void
+ *
+ * const JWKS = jose.createRemoteJWKSet(url, {
+ *   [jose.customFetch]: (...args) =>
+ *     ky(args[0], {
+ *       ...args[1],
+ *       hooks: {
+ *         beforeRequest: [
+ *           (request) => {
+ *             logRequest(request)
+ *           },
+ *         ],
+ *         beforeRetry: [
+ *           ({ request, error, retryCount }) => {
+ *             logRetry(request, error, retryCount)
+ *           },
+ *         ],
+ *         afterResponse: [
+ *           (request, _, response) => {
+ *             logResponse(request, response)
+ *           },
+ *         ],
+ *       },
+ *     }),
+ * })
+ * ```
+ *
+ * @example
+ *
+ * Using [nodejs/undici](https://github.com/nodejs/undici) to detect and use HTTP proxies.
+ *
+ * ```ts
+ * import * as undici from 'undici'
+ *
+ * // see https://undici.nodejs.org/#/docs/api/EnvHttpProxyAgent
+ * let envHttpProxyAgent = new undici.EnvHttpProxyAgent()
+ *
+ * // @ts-ignore
+ * const JWKS = jose.createRemoteJWKSet(url, {
+ *   [jose.customFetch]: (...args) => {
+ *     // @ts-ignore
+ *     return undici.fetch(args[0], { ...args[1], dispatcher: envHttpProxyAgent }) // prettier-ignore
+ *   },
+ * })
+ * ```
+ *
+ * @example
+ *
+ * Using [nodejs/undici](https://github.com/nodejs/undici) to automatically retry network errors.
+ *
+ * ```ts
+ * import * as undici from 'undici'
+ *
+ * // see https://undici.nodejs.org/#/docs/api/RetryAgent
+ * let retryAgent = new undici.RetryAgent(new undici.Agent(), {
+ *   statusCodes: [],
+ *   errorCodes: [
+ *     'ECONNRESET',
+ *     'ECONNREFUSED',
+ *     'ENOTFOUND',
+ *     'ENETDOWN',
+ *     'ENETUNREACH',
+ *     'EHOSTDOWN',
+ *     'UND_ERR_SOCKET',
+ *   ],
+ * })
+ *
+ * // @ts-ignore
+ * const JWKS = jose.createRemoteJWKSet(url, {
+ *   [jose.customFetch]: (...args) => {
+ *     // @ts-ignore
+ *     return undici.fetch(args[0], { ...args[1], dispatcher: retryAgent }) // prettier-ignore
+ *   },
+ * })
+ * ```
+ *
+ * @example
+ *
+ * Using [nodejs/undici](https://github.com/nodejs/undici) to mock responses in tests.
+ *
+ * ```ts
+ * import * as undici from 'undici'
+ *
+ * // see https://undici.nodejs.org/#/docs/api/MockAgent
+ * let mockAgent = new undici.MockAgent()
+ * mockAgent.disableNetConnect()
+ *
+ * // @ts-ignore
+ * const JWKS = jose.createRemoteJWKSet(url, {
+ *   [jose.customFetch]: (...args) => {
+ *     // @ts-ignore
+ *     return undici.fetch(args[0], { ...args[1], dispatcher: mockAgent }) // prettier-ignore
+ *   },
+ * })
+ * ```
+ */
+export const customFetch: unique symbol = Symbol();
+
+/** See {@link customFetch}. */
+export type FetchImplementation = (
+  url: string,
+  options: {
+    headers: Headers;
+    method: "GET";
+    redirect: "manual";
+    signal: AbortSignal;
+  },
+) => Promise<Response>;
+
+async function fetchJwks(
+  url: string,
+  headers: Headers,
+  signal: AbortSignal,
+  fetchImpl: FetchImplementation = fetch,
+) {
+  const response = await fetchImpl(url, {
+    method: "GET",
+    signal,
+    redirect: "manual",
+    headers,
+  }).catch((err) => {
+    if (err.name === "TimeoutError") {
+      throw new JWKSTimeout();
+    }
+
+    throw err;
+  });
+
+  if (response.status !== 200) {
+    throw new JOSEError(
+      "Expected 200 OK from the JSON Web Key Set HTTP response",
+    );
+  }
+
+  try {
+    return await response.json();
+  } catch {
+    throw new JOSEError(
+      "Failed to parse the JSON Web Key Set HTTP response as JSON",
+    );
+  }
 }
 
 /**
@@ -64,6 +220,9 @@ if (
  * - Afterwards, update the key-value storage if the {@link ExportedJWKSCache.uat `uat`} property of
  *   the object has changed.
  *
+ * @example
+ *
+ * ```ts
  * // Prerequisites
  * let url!: URL
  * let jwt!: string
@@ -109,32 +268,23 @@ export interface RemoteJWKSetOptions {
    */
   cacheMaxAge?: number | typeof Infinity;
 
-  /**
-   * An instance of {@link https://nodejs.org/api/http.html#class-httpagent http.Agent} or
-   * {@link https://nodejs.org/api/https.html#class-httpsagent https.Agent} to pass to the
-   * {@link https://nodejs.org/api/http.html#httpgetoptions-callback http.get} or
-   * {@link https://nodejs.org/api/https.html#httpsgetoptions-callback https.get} method's options.
-   * Use when behind an http(s) proxy. This is a Node.js runtime specific option, it is ignored when
-   * used outside of Node.js runtime.
-   */
-  agent?: any;
-
-  /**
-   * Headers to be sent with the HTTP request. Default is that `User-Agent: jose/v${version}` header
-   * is added unless the runtime is a browser in which adding an explicit headers fetch
-   * configuration would cause an unnecessary CORS preflight request.
-   */
+  /** Headers to be sent with the HTTP request. */
   headers?: Record<string, string>;
 
   /** See {@link jwksCache}. */
   [jwksCache]?: JWKSCacheInput;
+
+  /** See {@link customFetch}. */
+  [customFetch]?: FetchImplementation;
 }
 
+/** See {@link jwksCache}. */
 export interface ExportedJWKSCache {
-  jwks: JSONWebKeySet;
+  jwks: types.JSONWebKeySet;
   uat: number;
 }
 
+/** See {@link jwksCache}. */
 export type JWKSCacheInput = ExportedJWKSCache | Record<string, never>;
 
 function isFreshJwksCache(
@@ -154,7 +304,7 @@ function isFreshJwksCache(
 
   if (
     !("jwks" in input) ||
-    !isObject<JSONWebKeySet>(input.jwks) ||
+    !isObject<types.JSONWebKeySet>(input.jwks) ||
     !Array.isArray(input.jwks.keys) ||
     !Array.prototype.every.call(input.jwks.keys, isObject)
   ) {
@@ -164,7 +314,7 @@ function isFreshJwksCache(
   return true;
 }
 
-class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
+class RemoteJWKSet {
   private _url: URL;
 
   private _timeoutDuration: number;
@@ -177,9 +327,11 @@ class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
 
   private _pendingFetch?: Promise<unknown>;
 
-  private _options: Pick<RemoteJWKSetOptions, "agent" | "headers">;
+  private _headers: Headers;
 
-  private _local!: ReturnType<typeof createLocalJWKSet<KeyLikeType>>;
+  private [customFetch]?: FetchImplementation;
+
+  private _local!: ReturnType<typeof createLocalJWKSet>;
 
   private _cache?: JWKSCacheInput;
 
@@ -188,7 +340,7 @@ class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
       throw new TypeError("url must be an instance of URL");
     }
     this._url = new URL(url.href);
-    this._options = { agent: options?.agent, headers: options?.headers };
+
     this._timeoutDuration = typeof options?.timeoutDuration === "number"
       ? options?.timeoutDuration
       : 5000;
@@ -198,6 +350,17 @@ class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
     this._cacheMaxAge = typeof options?.cacheMaxAge === "number"
       ? options?.cacheMaxAge
       : 600000;
+    this._headers = new Headers(options?.headers);
+    if (USER_AGENT && !this._headers.has("User-Agent")) {
+      this._headers.set("User-Agent", USER_AGENT);
+    }
+
+    if (!this._headers.has("accept")) {
+      this._headers.set("accept", "application/json");
+      this._headers.append("accept", "application/jwk-set+json");
+    }
+
+    this[customFetch] = options?.[customFetch];
 
     if (options?.[jwksCache] !== undefined) {
       this._cache = options?.[jwksCache];
@@ -221,9 +384,9 @@ class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
   }
 
   async getKey(
-    protectedHeader?: JWSHeaderParameters,
-    token?: FlattenedJWSInput,
-  ): Promise<KeyLikeType> {
+    protectedHeader?: types.JWSHeaderParameters,
+    token?: types.FlattenedJWSInput,
+  ): Promise<types.CryptoKey> {
     if (!this._local || !this.fresh()) {
       await this.reload();
     }
@@ -248,22 +411,17 @@ class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
       this._pendingFetch = undefined;
     }
 
-    const headers = new Headers(this._options.headers);
-    if (USER_AGENT && !headers.has("User-Agent")) {
-      headers.set("User-Agent", USER_AGENT);
-      this._options.headers = Object.fromEntries(headers.entries());
-    }
-
     this._pendingFetch ||= fetchJwks(
-      this._url,
-      this._timeoutDuration,
-      this._options,
+      this._url.href,
+      this._headers,
+      AbortSignal.timeout(this._timeoutDuration),
+      this[customFetch],
     )
       .then((json) => {
-        this._local = createLocalJWKSet(json as unknown as JSONWebKeySet);
+        this._local = createLocalJWKSet(json as unknown as types.JSONWebKeySet);
         if (this._cache) {
           this._cache.uat = Date.now();
-          this._cache.jwks = json as unknown as JSONWebKeySet;
+          this._cache.jwks = json as unknown as types.JSONWebKeySet;
         }
         this._jwksTimestamp = Date.now();
         this._pendingFetch = undefined;
@@ -298,17 +456,62 @@ class RemoteJWKSet<KeyLikeType extends KeyLike = KeyLike> {
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/jwks/remote'`.
  *
+ * @example
+ *
+ * ```js
+ * const JWKS = jose.createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'))
+ *
+ * const { payload, protectedHeader } = await jose.jwtVerify(jwt, JWKS, {
+ *   issuer: 'urn:example:issuer',
+ *   audience: 'urn:example:audience',
+ * })
+ * console.log(protectedHeader)
+ * console.log(payload)
+ * ```
+ *
+ * @example
+ *
+ * Opting-in to multiple JWKS matches using `createRemoteJWKSet`
+ *
+ * ```js
+ * const options = {
+ *   issuer: 'urn:example:issuer',
+ *   audience: 'urn:example:audience',
+ * }
+ * const { payload, protectedHeader } = await jose
+ *   .jwtVerify(jwt, JWKS, options)
+ *   .catch(async (error) => {
+ *     if (error?.code === 'ERR_JWKS_MULTIPLE_MATCHING_KEYS') {
+ *       for await (const publicKey of error) {
+ *         try {
+ *           return await jose.jwtVerify(jwt, publicKey, options)
+ *         } catch (innerError) {
+ *           if (innerError?.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+ *             continue
+ *           }
+ *           throw innerError
+ *         }
+ *       }
+ *       throw new jose.errors.JWSSignatureVerificationFailed()
+ *     }
+ *
+ *     throw error
+ *   })
+ * console.log(protectedHeader)
+ * console.log(payload)
+ * ```
+ *
  * @param url URL to fetch the JSON Web Key Set from.
  * @param options Options for the remote JSON Web Key Set.
  */
-export function createRemoteJWKSet<KeyLikeType extends KeyLike = KeyLike>(
+export function createRemoteJWKSet(
   url: URL,
   options?: RemoteJWKSetOptions,
 ): {
   (
-    protectedHeader?: JWSHeaderParameters,
-    token?: FlattenedJWSInput,
-  ): Promise<KeyLikeType>;
+    protectedHeader?: types.JWSHeaderParameters,
+    token?: types.FlattenedJWSInput,
+  ): Promise<types.CryptoKey>;
   /** @ignore */
   coolingDown: boolean;
   /** @ignore */
@@ -318,14 +521,14 @@ export function createRemoteJWKSet<KeyLikeType extends KeyLike = KeyLike>(
   /** @ignore */
   reload: () => Promise<void>;
   /** @ignore */
-  jwks: () => JSONWebKeySet | undefined;
+  jwks: () => types.JSONWebKeySet | undefined;
 } {
-  const set = new RemoteJWKSet<KeyLikeType>(url, options);
+  const set = new RemoteJWKSet(url, options);
 
   const remoteJWKSet = async (
-    protectedHeader?: JWSHeaderParameters,
-    token?: FlattenedJWSInput,
-  ): Promise<KeyLikeType> => set.getKey(protectedHeader, token);
+    protectedHeader?: types.JWSHeaderParameters,
+    token?: types.FlattenedJWSInput,
+  ): Promise<types.CryptoKey> => set.getKey(protectedHeader, token);
 
   Object.defineProperties(remoteJWKSet, {
     coolingDown: {
@@ -362,10 +565,3 @@ export function createRemoteJWKSet<KeyLikeType extends KeyLike = KeyLike>(
   // @ts-expect-error
   return remoteJWKSet;
 }
-
-/**
- * @ignore
- *
- * @deprecated Use {@link jwksCache}.
- */
-export const experimental_jwksCache = jwksCache;

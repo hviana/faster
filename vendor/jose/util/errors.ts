@@ -1,7 +1,23 @@
-import type { JWTPayload, KeyLike } from "../types.d.ts";
+/**
+ * JOSE module errors and error codes
+ *
+ * @module
+ */
+
+import type * as types from "../types.d.ts";
 
 /**
  * A generic Error that all other JOSE specific Error subclasses extend.
+ *
+ * @example
+ *
+ * Checking thrown error is a JOSE one
+ *
+ * ```js
+ * if (err instanceof jose.errors.JOSEError) {
+ *   // ...
+ * }
+ * ```
  */
 export class JOSEError extends Error {
   /**
@@ -25,6 +41,26 @@ export class JOSEError extends Error {
 
 /**
  * An error subclass thrown when a JWT Claim Set member validation fails.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWT_CLAIM_VALIDATION_FAILED') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWTClaimValidationFailed) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWTClaimValidationFailed extends JOSEError {
   /** @ignore */
@@ -44,12 +80,12 @@ export class JWTClaimValidationFailed extends JOSEError {
    * has however been verified. Claims Set verification happens after the JWS Signature or JWE
    * Decryption processes.
    */
-  payload: JWTPayload;
+  payload: types.JWTPayload;
 
   /** @ignore */
   constructor(
     message: string,
-    payload: JWTPayload,
+    payload: types.JWTPayload,
     claim = "unspecified",
     reason = "unspecified",
   ) {
@@ -62,6 +98,26 @@ export class JWTClaimValidationFailed extends JOSEError {
 
 /**
  * An error subclass thrown when a JWT is expired.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWT_EXPIRED') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWTExpired) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWTExpired extends JOSEError implements JWTClaimValidationFailed {
   /** @ignore */
@@ -81,12 +137,12 @@ export class JWTExpired extends JOSEError implements JWTClaimValidationFailed {
    * has however been verified. Claims Set verification happens after the JWS Signature or JWE
    * Decryption processes.
    */
-  payload: JWTPayload;
+  payload: types.JWTPayload;
 
   /** @ignore */
   constructor(
     message: string,
-    payload: JWTPayload,
+    payload: types.JWTPayload,
     claim = "unspecified",
     reason = "unspecified",
   ) {
@@ -99,6 +155,26 @@ export class JWTExpired extends JOSEError implements JWTClaimValidationFailed {
 
 /**
  * An error subclass thrown when a JOSE Algorithm is not allowed per developer preference.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JOSE_ALG_NOT_ALLOWED') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JOSEAlgNotAllowed) {
+ *   // ...
+ * }
+ * ```
  */
 export class JOSEAlgNotAllowed extends JOSEError {
   /** @ignore */
@@ -110,6 +186,26 @@ export class JOSEAlgNotAllowed extends JOSEError {
 /**
  * An error subclass thrown when a particular feature or algorithm is not supported by this
  * implementation or JOSE in general.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JOSE_NOT_SUPPORTED') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JOSENotSupported) {
+ *   // ...
+ * }
+ * ```
  */
 export class JOSENotSupported extends JOSEError {
   /** @ignore */
@@ -120,6 +216,26 @@ export class JOSENotSupported extends JOSEError {
 
 /**
  * An error subclass thrown when a JWE ciphertext decryption fails.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWE_DECRYPTION_FAILED') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWEDecryptionFailed) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWEDecryptionFailed extends JOSEError {
   /** @ignore */
@@ -138,6 +254,26 @@ export class JWEDecryptionFailed extends JOSEError {
 
 /**
  * An error subclass thrown when a JWE is invalid.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWE_INVALID') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWEInvalid) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWEInvalid extends JOSEError {
   /** @ignore */
@@ -148,6 +284,26 @@ export class JWEInvalid extends JOSEError {
 
 /**
  * An error subclass thrown when a JWS is invalid.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWS_INVALID') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWSInvalid) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWSInvalid extends JOSEError {
   /** @ignore */
@@ -158,6 +314,26 @@ export class JWSInvalid extends JOSEError {
 
 /**
  * An error subclass thrown when a JWT is invalid.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWT_INVALID') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWTInvalid) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWTInvalid extends JOSEError {
   /** @ignore */
@@ -168,6 +344,26 @@ export class JWTInvalid extends JOSEError {
 
 /**
  * An error subclass thrown when a JWK is invalid.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWK_INVALID') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWKInvalid) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWKInvalid extends JOSEError {
   /** @ignore */
@@ -178,6 +374,26 @@ export class JWKInvalid extends JOSEError {
 
 /**
  * An error subclass thrown when a JWKS is invalid.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWKS_INVALID') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWKSInvalid) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWKSInvalid extends JOSEError {
   /** @ignore */
@@ -188,6 +404,26 @@ export class JWKSInvalid extends JOSEError {
 
 /**
  * An error subclass thrown when no keys match from a JWKS.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWKS_NO_MATCHING_KEY') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWKSNoMatchingKey) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWKSNoMatchingKey extends JOSEError {
   /** @ignore */
@@ -206,10 +442,30 @@ export class JWKSNoMatchingKey extends JOSEError {
 
 /**
  * An error subclass thrown when multiple keys match from a JWKS.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWKS_MULTIPLE_MATCHING_KEYS') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWKSMultipleMatchingKeys) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWKSMultipleMatchingKeys extends JOSEError {
   /** @ignore */
-  [Symbol.asyncIterator]!: () => AsyncIterableIterator<KeyLike>;
+  [Symbol.asyncIterator]!: () => AsyncIterableIterator<types.CryptoKey>;
 
   /** @ignore */
   static override code = "ERR_JWKS_MULTIPLE_MATCHING_KEYS";
@@ -227,6 +483,26 @@ export class JWKSMultipleMatchingKeys extends JOSEError {
 
 /**
  * Timeout was reached when retrieving the JWKS response.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWKS_TIMEOUT') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWKSTimeout) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWKSTimeout extends JOSEError {
   /** @ignore */
@@ -242,6 +518,26 @@ export class JWKSTimeout extends JOSEError {
 
 /**
  * An error subclass thrown when JWS signature verification fails.
+ *
+ * @example
+ *
+ * Checking thrown error is this one using a stable error code
+ *
+ * ```js
+ * if (err.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+ *   // ...
+ * }
+ * ```
+ *
+ * @example
+ *
+ * Checking thrown error is this one using `instanceof`
+ *
+ * ```js
+ * if (err instanceof jose.errors.JWSSignatureVerificationFailed) {
+ *   // ...
+ * }
+ * ```
  */
 export class JWSSignatureVerificationFailed extends JOSEError {
   /** @ignore */

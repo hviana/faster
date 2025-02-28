@@ -1,34 +1,34 @@
-import { FlattenedSign } from "../flattened/sign.ts";
-import { JWSInvalid } from "../../util/errors.ts";
+/**
+ * Signing JSON Web Signature (JWS) in General JSON Serialization
+ *
+ * @module
+ */
 
-import type {
-  GeneralJWS,
-  JWK,
-  JWSHeaderParameters,
-  KeyLike,
-  SignOptions,
-} from "../../types.d.ts";
+import type * as types from "../../types.d.ts";
+import { FlattenedSign } from "../flattened/sign.js";
+import { JWSInvalid } from "../../util/errors.js";
 
+/** Used to build General JWS object's individual signatures. */
 export interface Signature {
   /**
    * Sets the JWS Protected Header on the Signature object.
    *
    * @param protectedHeader JWS Protected Header.
    */
-  setProtectedHeader(protectedHeader: JWSHeaderParameters): Signature;
+  setProtectedHeader(protectedHeader: types.JWSHeaderParameters): Signature;
 
   /**
    * Sets the JWS Unprotected Header on the Signature object.
    *
    * @param unprotectedHeader JWS Unprotected Header.
    */
-  setUnprotectedHeader(unprotectedHeader: JWSHeaderParameters): Signature;
+  setUnprotectedHeader(unprotectedHeader: types.JWSHeaderParameters): Signature;
 
   /** A shorthand for calling addSignature() on the enclosing GeneralSign instance */
   addSignature(...args: Parameters<GeneralSign["addSignature"]>): Signature;
 
   /** A shorthand for calling encrypt() on the enclosing GeneralSign instance */
-  sign(...args: Parameters<GeneralSign["sign"]>): Promise<GeneralJWS>;
+  sign(...args: Parameters<GeneralSign["sign"]>): Promise<types.GeneralJWS>;
 
   /** Returns the enclosing GeneralSign */
   done(): GeneralSign;
@@ -37,22 +37,22 @@ export interface Signature {
 class IndividualSignature implements Signature {
   private parent: GeneralSign;
 
-  protectedHeader?: JWSHeaderParameters;
-  unprotectedHeader?: JWSHeaderParameters;
-  options?: SignOptions;
-  key: KeyLike | Uint8Array | JWK;
+  protectedHeader?: types.JWSHeaderParameters;
+  unprotectedHeader?: types.JWSHeaderParameters;
+  options?: types.SignOptions;
+  key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array;
 
   constructor(
     sig: GeneralSign,
-    key: KeyLike | Uint8Array | JWK,
-    options?: SignOptions,
+    key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+    options?: types.SignOptions,
   ) {
     this.parent = sig;
     this.key = key;
     this.options = options;
   }
 
-  setProtectedHeader(protectedHeader: JWSHeaderParameters) {
+  setProtectedHeader(protectedHeader: types.JWSHeaderParameters) {
     if (this.protectedHeader) {
       throw new TypeError("setProtectedHeader can only be called once");
     }
@@ -60,7 +60,7 @@ class IndividualSignature implements Signature {
     return this;
   }
 
-  setUnprotectedHeader(unprotectedHeader: JWSHeaderParameters) {
+  setUnprotectedHeader(unprotectedHeader: types.JWSHeaderParameters) {
     if (this.unprotectedHeader) {
       throw new TypeError("setUnprotectedHeader can only be called once");
     }
@@ -86,6 +86,21 @@ class IndividualSignature implements Signature {
  *
  * This class is exported (as a named export) from the main `'jose'` module entry point as well as
  * from its subpath export `'jose/jws/general/sign'`.
+ *
+ * @example
+ *
+ * ```js
+ * const jws = await new jose.GeneralSign(
+ *   new TextEncoder().encode('It’s a dangerous business, Frodo, going out your door.'),
+ * )
+ *   .addSignature(ecPrivateKey)
+ *   .setProtectedHeader({ alg: 'ES256' })
+ *   .addSignature(rsaPrivateKey)
+ *   .setProtectedHeader({ alg: 'PS256' })
+ *   .sign()
+ *
+ * console.log(jws)
+ * ```
  */
 export class GeneralSign {
   private _payload: Uint8Array;
@@ -105,8 +120,8 @@ export class GeneralSign {
    * @param options JWS Sign options.
    */
   addSignature(
-    key: KeyLike | Uint8Array | JWK,
-    options?: SignOptions,
+    key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+    options?: types.SignOptions,
   ): Signature {
     const signature = new IndividualSignature(this, key, options);
     this._signatures.push(signature);
@@ -114,12 +129,12 @@ export class GeneralSign {
   }
 
   /** Signs and resolves the value of the General JWS object. */
-  async sign(): Promise<GeneralJWS> {
+  async sign(): Promise<types.GeneralJWS> {
     if (!this._signatures.length) {
       throw new JWSInvalid("at least one signature must be added");
     }
 
-    const jws: GeneralJWS = {
+    const jws: types.GeneralJWS = {
       signatures: [],
       payload: "",
     };

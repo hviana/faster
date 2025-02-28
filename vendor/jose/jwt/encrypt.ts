@@ -1,27 +1,43 @@
-import { CompactEncrypt } from "../jwe/compact/encrypt.ts";
-import type {
-  CompactJWEHeaderParameters,
-  EncryptOptions,
-  JWEKeyManagementHeaderParameters,
-  KeyLike,
-} from "../types.d.ts";
-import { encoder } from "../lib/buffer_utils.ts";
-import { ProduceJWT } from "./produce.ts";
+/**
+ * JSON Web Token (JWT) Encryption (JWT is in JWE format)
+ *
+ * @module
+ */
+
+import type * as types from "../types.d.ts";
+import { CompactEncrypt } from "../jwe/compact/encrypt.js";
+import { encoder } from "../lib/buffer_utils.js";
+import { ProduceJWT } from "./produce.js";
 
 /**
  * The EncryptJWT class is used to build and encrypt Compact JWE formatted JSON Web Tokens.
  *
  * This class is exported (as a named export) from the main `'jose'` module entry point as well as
  * from its subpath export `'jose/jwt/encrypt'`.
+ *
+ * @example
+ *
+ * ```js
+ * const secret = jose.base64url.decode('zH4NRP1HMALxxCFnRZABFA7GOJtzU_gIj02alfL1lvI')
+ * const jwt = await new jose.EncryptJWT({ 'urn:example:claim': true })
+ *   .setProtectedHeader({ alg: 'dir', enc: 'A128CBC-HS256' })
+ *   .setIssuedAt()
+ *   .setIssuer('urn:example:issuer')
+ *   .setAudience('urn:example:audience')
+ *   .setExpirationTime('2h')
+ *   .encrypt(secret)
+ *
+ * console.log(jwt)
+ * ```
  */
 export class EncryptJWT extends ProduceJWT {
   private _cek!: Uint8Array;
 
   private _iv!: Uint8Array;
 
-  private _keyManagementParameters!: JWEKeyManagementHeaderParameters;
+  private _keyManagementParameters!: types.JWEKeyManagementHeaderParameters;
 
-  private _protectedHeader!: CompactJWEHeaderParameters;
+  private _protectedHeader!: types.CompactJWEHeaderParameters;
 
   private _replicateIssuerAsHeader!: boolean;
 
@@ -35,7 +51,7 @@ export class EncryptJWT extends ProduceJWT {
    * @param protectedHeader JWE Protected Header. Must contain an "alg" (JWE Algorithm) and "enc"
    *   (JWE Encryption Algorithm) properties.
    */
-  setProtectedHeader(protectedHeader: CompactJWEHeaderParameters): this {
+  setProtectedHeader(protectedHeader: types.CompactJWEHeaderParameters): this {
     if (this._protectedHeader) {
       throw new TypeError("setProtectedHeader can only be called once");
     }
@@ -52,7 +68,7 @@ export class EncryptJWT extends ProduceJWT {
    * @param parameters JWE Key Management parameters.
    */
   setKeyManagementParameters(
-    parameters: JWEKeyManagementHeaderParameters,
+    parameters: types.JWEKeyManagementHeaderParameters,
   ): this {
     if (this._keyManagementParameters) {
       throw new TypeError("setKeyManagementParameters can only be called once");
@@ -133,8 +149,8 @@ export class EncryptJWT extends ProduceJWT {
    * @param options JWE Encryption options.
    */
   async encrypt(
-    key: KeyLike | Uint8Array,
-    options?: EncryptOptions,
+    key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+    options?: types.EncryptOptions,
   ): Promise<string> {
     const enc = new CompactEncrypt(
       encoder.encode(JSON.stringify(this._payload)),

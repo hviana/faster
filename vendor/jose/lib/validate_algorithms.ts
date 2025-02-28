@@ -1,4 +1,4 @@
-const validateAlgorithms = (option: string, algorithms?: string[]) => {
+export default (option: string, algorithms?: string[]) => {
   if (
     algorithms !== undefined &&
     (!Array.isArray(algorithms) ||
@@ -13,5 +13,3 @@ const validateAlgorithms = (option: string, algorithms?: string[]) => {
 
   return new Set(algorithms);
 };
-
-export default validateAlgorithms;

@@ -1,34 +1,36 @@
-import { decode as base64url } from "../../runtime/base64url.ts";
-import decrypt from "../../runtime/decrypt.ts";
+/**
+ * Decrypting JSON Web Encryption (JWE) in Flattened JSON Serialization
+ *
+ * @module
+ */
 
+import type * as types from "../../types.d.ts";
+import { decode as b64u } from "../../util/base64url.js";
+import decrypt from "../../lib/decrypt.js";
 import {
   JOSEAlgNotAllowed,
   JOSENotSupported,
   JWEInvalid,
-} from "../../util/errors.ts";
-import isDisjoint from "../../lib/is_disjoint.ts";
-import isObject from "../../lib/is_object.ts";
-import decryptKeyManagement from "../../lib/decrypt_key_management.ts";
-import type {
-  DecryptOptions,
-  FlattenedDecryptResult,
-  FlattenedJWE,
-  GetKeyFunction,
-  JWEHeaderParameters,
-  KeyLike,
-  ResolvedKey,
-} from "../../types.d.ts";
-import { concat, decoder, encoder } from "../../lib/buffer_utils.ts";
-import generateCek from "../../lib/cek.ts";
-import validateCrit from "../../lib/validate_crit.ts";
-import validateAlgorithms from "../../lib/validate_algorithms.ts";
+} from "../../util/errors.js";
+import isDisjoint from "../../lib/is_disjoint.js";
+import isObject from "../../lib/is_object.js";
+import decryptKeyManagement from "../../lib/decrypt_key_management.js";
+import { concat, decoder, encoder } from "../../lib/buffer_utils.js";
+import generateCek from "../../lib/cek.js";
+import validateCrit from "../../lib/validate_crit.js";
+import validateAlgorithms from "../../lib/validate_algorithms.js";
+import normalizeKey from "../../lib/normalize_key.js";
+import checkKeyType from "../../lib/check_key_type.js";
 
 /**
  * Interface for Flattened JWE Decryption dynamic key resolution. No token components have been
  * verified at the time of this function call.
  */
-export interface FlattenedDecryptGetKey
-  extends GetKeyFunction<JWEHeaderParameters | undefined, FlattenedJWE> {}
+export interface FlattenedDecryptGetKey extends
+  types.GetKeyFunction<
+    types.JWEHeaderParameters | undefined,
+    types.FlattenedJWE
+  > {}
 
 /**
  * Decrypts a Flattened JWE.
@@ -36,31 +38,58 @@ export interface FlattenedDecryptGetKey
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/jwe/flattened/decrypt'`.
  *
+ * @example
+ *
+ * ```js
+ * const jwe = {
+ *   ciphertext: '9EzjFISUyoG-ifC2mSihfP0DPC80yeyrxhTzKt1C_VJBkxeBG0MI4Te61Pk45RAGubUvBpU9jm4',
+ *   iv: '8Fy7A_IuoX5VXG9s',
+ *   tag: 'W76IYV6arGRuDSaSyWrQNg',
+ *   encrypted_key:
+ *     'Z6eD4UK_yFb5ZoKvKkGAdqywEG_m0e4IYo0x8Vf30LAMJcsc-_zSgIeiF82teZyYi2YYduHKoqImk7MRnoPZOlEs0Q5BNK1OgBmSOhCE8DFyqh9Zh48TCTP6lmBQ52naqoUJFMtHzu-0LwZH26hxos0GP3Dt19O379MJB837TdKKa87skq0zHaVLAquRHOBF77GI54Bc7O49d8aOrSu1VEFGMThlW2caspPRiTSePDMDPq7_WGk50izRhB3Asl9wmP9wEeaTrkJKRnQj5ips1SAZ1hDBsqEQKKukxP1HtdcopHV5_qgwU8Hjm5EwSLMluMQuiE6hwlkXGOujZLVizA',
+ *   aad: 'VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc',
+ *   protected: 'eyJhbGciOiJSU0EtT0FFUC0yNTYiLCJlbmMiOiJBMjU2R0NNIn0',
+ * }
+ *
+ * const { plaintext, protectedHeader, additionalAuthenticatedData } =
+ *   await jose.flattenedDecrypt(jwe, privateKey)
+ *
+ * console.log(protectedHeader)
+ * const decoder = new TextDecoder()
+ * console.log(decoder.decode(plaintext))
+ * console.log(decoder.decode(additionalAuthenticatedData))
+ * ```
+ *
  * @param jwe Flattened JWE.
  * @param key Private Key or Secret to decrypt the JWE with. See
  *   {@link https://github.com/panva/jose/issues/210#jwe-alg Algorithm Key Requirements}.
  * @param options JWE Decryption options.
  */
 export function flattenedDecrypt(
-  jwe: FlattenedJWE,
-  key: KeyLike | Uint8Array,
-  options?: DecryptOptions,
-): Promise<FlattenedDecryptResult>;
+  jwe: types.FlattenedJWE,
+  key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+  options?: types.DecryptOptions,
+): Promise<types.FlattenedDecryptResult>;
 /**
  * @param jwe Flattened JWE.
  * @param getKey Function resolving Private Key or Secret to decrypt the JWE with. See
  *   {@link https://github.com/panva/jose/issues/210#jwe-alg Algorithm Key Requirements}.
  * @param options JWE Decryption options.
  */
-export function flattenedDecrypt<KeyLikeType extends KeyLike = KeyLike>(
-  jwe: FlattenedJWE,
+export function flattenedDecrypt(
+  jwe: types.FlattenedJWE,
   getKey: FlattenedDecryptGetKey,
-  options?: DecryptOptions,
-): Promise<FlattenedDecryptResult & ResolvedKey<KeyLikeType>>;
+  options?: types.DecryptOptions,
+): Promise<types.FlattenedDecryptResult & types.ResolvedKey>;
 export async function flattenedDecrypt(
-  jwe: FlattenedJWE,
-  key: KeyLike | Uint8Array | FlattenedDecryptGetKey,
-  options?: DecryptOptions,
+  jwe: types.FlattenedJWE,
+  key:
+    | types.CryptoKey
+    | types.KeyObject
+    | types.JWK
+    | Uint8Array
+    | FlattenedDecryptGetKey,
+  options?: types.DecryptOptions,
 ) {
   if (!isObject(jwe)) {
     throw new JWEInvalid("Flattened JWE must be an object");
@@ -107,10 +136,10 @@ export async function flattenedDecrypt(
     throw new JWEInvalid("JWE Per-Recipient Unprotected Header incorrect type");
   }
 
-  let parsedProt!: JWEHeaderParameters;
+  let parsedProt!: types.JWEHeaderParameters;
   if (jwe.protected) {
     try {
-      const protectedHeader = base64url(jwe.protected);
+      const protectedHeader = b64u(jwe.protected);
       parsedProt = JSON.parse(decoder.decode(protectedHeader));
     } catch {
       throw new JWEInvalid("JWE Protected Header is invalid");
@@ -122,7 +151,7 @@ export async function flattenedDecrypt(
     );
   }
 
-  const joseHeader: JWEHeaderParameters = {
+  const joseHeader: types.JWEHeaderParameters = {
     ...parsedProt,
     ...jwe.header,
     ...jwe.unprotected,
@@ -177,7 +206,7 @@ export async function flattenedDecrypt(
   let encryptedKey!: Uint8Array;
   if (jwe.encrypted_key !== undefined) {
     try {
-      encryptedKey = base64url(jwe.encrypted_key!);
+      encryptedKey = b64u(jwe.encrypted_key!);
     } catch {
       throw new JWEInvalid("Failed to base64url decode the encrypted_key");
     }
@@ -188,16 +217,12 @@ export async function flattenedDecrypt(
     key = await key(parsedProt, jwe);
     resolvedKey = true;
   }
+  checkKeyType(alg === "dir" ? enc : alg, key, "decrypt");
 
-  let cek: KeyLike | Uint8Array;
+  const k = await normalizeKey(key, alg);
+  let cek: types.CryptoKey | Uint8Array;
   try {
-    cek = await decryptKeyManagement(
-      alg,
-      key,
-      encryptedKey,
-      joseHeader,
-      options,
-    );
+    cek = await decryptKeyManagement(alg, k, encryptedKey, joseHeader, options);
   } catch (err) {
     if (
       err instanceof TypeError || err instanceof JWEInvalid ||
@@ -219,14 +244,14 @@ export async function flattenedDecrypt(
   let tag: Uint8Array | undefined;
   if (jwe.iv !== undefined) {
     try {
-      iv = base64url(jwe.iv);
+      iv = b64u(jwe.iv);
     } catch {
       throw new JWEInvalid("Failed to base64url decode the iv");
     }
   }
   if (jwe.tag !== undefined) {
     try {
-      tag = base64url(jwe.tag);
+      tag = b64u(jwe.tag);
     } catch {
       throw new JWEInvalid("Failed to base64url decode the tag");
     }
@@ -247,7 +272,7 @@ export async function flattenedDecrypt(
 
   let ciphertext: Uint8Array;
   try {
-    ciphertext = base64url(jwe.ciphertext);
+    ciphertext = b64u(jwe.ciphertext);
   } catch {
     throw new JWEInvalid("Failed to base64url decode the ciphertext");
   }
@@ -260,7 +285,7 @@ export async function flattenedDecrypt(
     additionalData,
   );
 
-  const result: FlattenedDecryptResult = { plaintext };
+  const result: types.FlattenedDecryptResult = { plaintext };
 
   if (jwe.protected !== undefined) {
     result.protectedHeader = parsedProt;
@@ -268,7 +293,7 @@ export async function flattenedDecrypt(
 
   if (jwe.aad !== undefined) {
     try {
-      result.additionalAuthenticatedData = base64url(jwe.aad!);
+      result.additionalAuthenticatedData = b64u(jwe.aad!);
     } catch {
       throw new JWEInvalid("Failed to base64url decode the aad");
     }
@@ -283,7 +308,7 @@ export async function flattenedDecrypt(
   }
 
   if (resolvedKey) {
-    return { ...result, key };
+    return { ...result, key: k };
   }
 
   return result;

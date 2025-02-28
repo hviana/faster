@@ -1,6 +1,6 @@
-import encrypt from "../runtime/encrypt.ts";
-import decrypt from "../runtime/decrypt.ts";
-import { encode as base64url } from "../runtime/base64url.ts";
+import encrypt from "./encrypt.js";
+import decrypt from "./decrypt.js";
+import { encode as b64u } from "../util/base64url.js";
 
 export async function wrap(
   alg: string,
@@ -14,8 +14,8 @@ export async function wrap(
 
   return {
     encryptedKey: wrapped.ciphertext,
-    iv: base64url(wrapped.iv!),
-    tag: base64url(wrapped.tag!),
+    iv: b64u(wrapped.iv!),
+    tag: b64u(wrapped.tag!),
   };
 }
 

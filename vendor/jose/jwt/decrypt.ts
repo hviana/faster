@@ -1,28 +1,27 @@
-import { compactDecrypt } from "../jwe/compact/decrypt.ts";
-import type {
-  CompactJWEHeaderParameters,
-  DecryptOptions,
-  FlattenedJWE,
-  GetKeyFunction,
-  JWTClaimVerificationOptions,
-  JWTDecryptResult,
-  JWTPayload,
-  KeyLike,
-  ResolvedKey,
-} from "../types.d.ts";
-import jwtPayload from "../lib/jwt_claims_set.ts";
-import { JWTClaimValidationFailed } from "../util/errors.ts";
+/**
+ * JSON Web Token (JWT) Decryption (JWT is in JWE format)
+ *
+ * @module
+ */
+
+import type * as types from "../types.d.ts";
+import { compactDecrypt } from "../jwe/compact/decrypt.js";
+import jwtPayload from "../lib/jwt_claims_set.js";
+import { JWTClaimValidationFailed } from "../util/errors.js";
 
 /** Combination of JWE Decryption options and JWT Claims Set verification options. */
 export interface JWTDecryptOptions
-  extends DecryptOptions, JWTClaimVerificationOptions {}
+  extends types.DecryptOptions, types.JWTClaimVerificationOptions {}
 
 /**
  * Interface for JWT Decryption dynamic key resolution. No token components have been verified at
  * the time of this function call.
  */
-export interface JWTDecryptGetKey
-  extends GetKeyFunction<CompactJWEHeaderParameters, FlattenedJWE> {}
+export interface JWTDecryptGetKey extends
+  types.GetKeyFunction<
+    types.CompactJWEHeaderParameters,
+    types.FlattenedJWE
+  > {}
 
 /**
  * Verifies the JWT format (to be a JWE Compact format), decrypts the ciphertext, validates the JWT
@@ -31,33 +30,51 @@ export interface JWTDecryptGetKey
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/jwt/decrypt'`.
  *
+ * @example
+ *
+ * ```js
+ * const secret = jose.base64url.decode('zH4NRP1HMALxxCFnRZABFA7GOJtzU_gIj02alfL1lvI')
+ * const jwt =
+ *   'eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..MB66qstZBPxAXKdsjet_lA.WHbtJTl4taHp7otOHLq3hBvv0yNPsPEKHYInmCPdDDeyV1kU-f-tGEiU4FxlSqkqAT2hVs8_wMNiQFAzPU1PUgIqWCPsBrPP3TtxYsrtwagpn4SvCsUsx0Mhw9ZhliAO8CLmCBQkqr_T9AcYsz5uZw.7nX9m7BGUu_u1p1qFHzyIg'
+ *
+ * const { payload, protectedHeader } = await jose.jwtDecrypt(jwt, secret, {
+ *   issuer: 'urn:example:issuer',
+ *   audience: 'urn:example:audience',
+ * })
+ *
+ * console.log(protectedHeader)
+ * console.log(payload)
+ * ```
+ *
  * @param jwt JSON Web Token value (encoded as JWE).
  * @param key Private Key or Secret to decrypt and verify the JWT with. See
  *   {@link https://github.com/panva/jose/issues/210#jwe-alg Algorithm Key Requirements}.
  * @param options JWT Decryption and JWT Claims Set validation options.
  */
-export async function jwtDecrypt<PayloadType = JWTPayload>(
+export async function jwtDecrypt<PayloadType = types.JWTPayload>(
   jwt: string | Uint8Array,
-  key: KeyLike | Uint8Array,
+  key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
   options?: JWTDecryptOptions,
-): Promise<JWTDecryptResult<PayloadType>>;
+): Promise<types.JWTDecryptResult<PayloadType>>;
 /**
  * @param jwt JSON Web Token value (encoded as JWE).
  * @param getKey Function resolving Private Key or Secret to decrypt and verify the JWT with. See
  *   {@link https://github.com/panva/jose/issues/210#jwe-alg Algorithm Key Requirements}.
  * @param options JWT Decryption and JWT Claims Set validation options.
  */
-export async function jwtDecrypt<
-  PayloadType = JWTPayload,
-  KeyLikeType extends KeyLike = KeyLike,
->(
+export async function jwtDecrypt<PayloadType = types.JWTPayload>(
   jwt: string | Uint8Array,
   getKey: JWTDecryptGetKey,
   options?: JWTDecryptOptions,
-): Promise<JWTDecryptResult<PayloadType> & ResolvedKey<KeyLikeType>>;
+): Promise<types.JWTDecryptResult<PayloadType> & types.ResolvedKey>;
 export async function jwtDecrypt(
   jwt: string | Uint8Array,
-  key: KeyLike | Uint8Array | JWTDecryptGetKey,
+  key:
+    | types.CryptoKey
+    | types.KeyObject
+    | types.JWK
+    | Uint8Array
+    | JWTDecryptGetKey,
   options?: JWTDecryptOptions,
 ) {
   const decrypted = await compactDecrypt(

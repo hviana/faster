@@ -1,20 +1,43 @@
-import crypto, { isCryptoKey } from "./webcrypto.ts";
-import type { PEMExportFunction, PEMImportFunction } from "./interfaces.d.ts";
-import invalidKeyInput from "../lib/invalid_key_input.ts";
-import { decodeBase64, encodeBase64 } from "./base64url.ts";
-import formatPEM from "../lib/format_pem.ts";
-import { JOSENotSupported } from "../util/errors.ts";
-import { types } from "./is_key_like.ts";
+import type * as types from "../types.d.ts";
+import invalidKeyInput from "./invalid_key_input.js";
+import { decodeBase64, encodeBase64 } from "../lib/base64.js";
+import { JOSENotSupported } from "../util/errors.js";
+import { isCryptoKey, isKeyObject } from "./is_key_like.js";
 
-import type { PEMImportOptions } from "../key/import.ts";
+import type { KeyImportOptions } from "../key/import.js";
+
+const formatPEM = (b64: string, descriptor: string) => {
+  const newlined = (b64.match(/.{1,64}/g) || []).join("\n");
+  return `-----BEGIN ${descriptor}-----\n${newlined}\n-----END ${descriptor}-----`;
+};
+
+interface ExportOptions {
+  format: "pem";
+  type: "spki" | "pkcs8";
+}
+
+interface ExtractableKeyObject extends types.KeyObject {
+  export(arg: ExportOptions): string;
+}
 
 const genericExport = async (
   keyType: "private" | "public",
   keyFormat: "spki" | "pkcs8",
   key: unknown,
 ) => {
+  if (isKeyObject(key)) {
+    if (key.type !== keyType) {
+      throw new TypeError(`key is not a ${keyType} key`);
+    }
+
+    return (key as ExtractableKeyObject).export({
+      format: "pem",
+      type: keyFormat,
+    });
+  }
+
   if (!isCryptoKey(key)) {
-    throw new TypeError(invalidKeyInput(key, ...types));
+    throw new TypeError(invalidKeyInput(key, "CryptoKey", "KeyObject"));
   }
 
   if (!key.extractable) {
@@ -31,11 +54,11 @@ const genericExport = async (
   );
 };
 
-export const toSPKI: PEMExportFunction = (key) => {
+export const toSPKI = (key: unknown): Promise<string> => {
   return genericExport("public", "spki", key);
 };
 
-export const toPKCS8: PEMExportFunction = (key) => {
+export const toPKCS8 = (key: unknown): Promise<string> => {
   return genericExport("private", "pkcs8", key);
 };
 
@@ -52,7 +75,7 @@ const findOid = (keyData: Uint8Array, oid: number[], from = 0): boolean => {
     findOid(keyData, oid, i + 1);
 };
 
-const getNamedCurve = (keyData: Uint8Array): string => {
+const getNamedCurve = (keyData: Uint8Array): string | undefined => {
   switch (true) {
     case findOid(keyData, [0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07]):
       return "P-256";
@@ -60,18 +83,8 @@ const getNamedCurve = (keyData: Uint8Array): string => {
       return "P-384";
     case findOid(keyData, [0x2b, 0x81, 0x04, 0x00, 0x23]):
       return "P-521";
-    case findOid(keyData, [0x2b, 0x65, 0x6e]):
-      return "X25519";
-    case findOid(keyData, [0x2b, 0x65, 0x6f]):
-      return "X448";
-    case findOid(keyData, [0x2b, 0x65, 0x70]):
-      return "Ed25519";
-    case findOid(keyData, [0x2b, 0x65, 0x71]):
-      return "Ed448";
     default:
-      throw new JOSENotSupported(
-        "Invalid or unsupported EC Key Curve or OKP Key Sub Type",
-      );
+      return undefined;
   }
 };
 
@@ -80,7 +93,7 @@ const genericImport = async (
   keyFormat: "spki" | "pkcs8",
   pem: string,
   alg: string,
-  options?: PEMImportOptions,
+  options?: KeyImportOptions,
 ) => {
   let algorithm: RsaHashedImportParams | EcKeyAlgorithm | Algorithm;
   let keyUsages: KeyUsage[];
@@ -133,14 +146,15 @@ const genericImport = async (
     case "ECDH-ES+A192KW":
     case "ECDH-ES+A256KW": {
       const namedCurve = getNamedCurve(keyData);
-      algorithm = namedCurve.startsWith("P-")
+      algorithm = namedCurve?.startsWith("P-")
         ? { name: "ECDH", namedCurve }
-        : { name: namedCurve };
+        : { name: "X25519" };
       keyUsages = isPublic ? [] : ["deriveBits"];
       break;
     }
+    case "Ed25519": // Fall through
     case "EdDSA":
-      algorithm = { name: getNamedCurve(keyData) };
+      algorithm = { name: "Ed25519" };
       keyUsages = isPublic ? ["verify"] : ["sign"];
       break;
     default:
@@ -153,10 +167,16 @@ const genericImport = async (
     keyFormat,
     keyData,
     algorithm,
-    options?.extractable ?? false,
+    options?.extractable ?? (isPublic ? true : false),
     keyUsages,
   );
 };
+
+type PEMImportFunction = (
+  pem: string,
+  alg: string,
+  options?: KeyImportOptions,
+) => Promise<types.CryptoKey>;
 
 export const fromPKCS8: PEMImportFunction = (pem, alg, options?) => {
   return genericImport(
@@ -256,7 +276,21 @@ function spkiFromX509(buf: Uint8Array) {
   );
 }
 
+let createPublicKey: any;
 function getSPKI(x509: string): string {
+  try {
+    // @ts-ignore
+    createPublicKey ??= globalThis.process?.getBuiltinModule?.("node:crypto")
+      ?.createPublicKey;
+  } catch {
+    createPublicKey = 0;
+  }
+
+  if (createPublicKey) {
+    try {
+      return new createPublicKey(x509).export({ format: "pem", type: "spki" });
+    } catch {}
+  }
   const pem = x509.replace(/(?:-----(?:BEGIN|END) CERTIFICATE-----|\s)/g, "");
   const raw = decodeBase64(pem);
   return formatPEM(spkiFromX509(raw), "PUBLIC KEY");
@@ -267,7 +301,6 @@ export const fromX509: PEMImportFunction = (pem, alg, options?) => {
   try {
     spki = getSPKI(pem);
   } catch (cause) {
-    // @ts-ignore
     throw new TypeError("Failed to parse the X.509 certificate", { cause });
   }
   return fromSPKI(spki, alg, options);

@@ -1,30 +1,7 @@
-/**
- * KeyLike are runtime-specific classes representing asymmetric keys or symmetric secrets. These are
- * instances of {@link !CryptoKey} and additionally {@link !KeyObject} in Node.js runtime.
- * {@link !Uint8Array} instances are also accepted as symmetric secret representation only.
- *
- * {@link key/import Key Import Functions} can be used to import PEM, or JWK formatted asymmetric
- * keys and certificates to these runtime-specific representations.
- *
- * In Node.js the {@link !Buffer} class is a subclass of {@link !Uint8Array} and so {@link !Buffer} can
- * be provided for symmetric secrets as well.
- *
- * {@link !KeyObject} is a representation of a key/secret available in the Node.js runtime. In
- * addition to the {@link key/import Key Import Functions} you may use the runtime APIs
- * {@link !createPublicKey}, {@link !createPrivateKey}, and {@link !createSecretKey} to obtain a
- * {@link !KeyObject} from your existing key material.
- *
- * {@link !CryptoKey} is a representation of a key/secret available in the Browser and
- * Web-interoperable runtimes. In addition to the {@link key/import Key Import Functions} you may use
- * the {@link !SubtleCrypto.importKey} API to obtain a {@link !CryptoKey} from your existing key
- * material.
- */
-export type KeyLike = { type: string };
-
 /** Generic JSON Web Key Parameters. */
 export interface JWKParameters {
   /** JWK "kty" (Key Type) Parameter */
-  kty: string;
+  kty?: string;
   /**
    * JWK "alg" (Algorithm) Parameter
    *
@@ -95,16 +72,6 @@ export interface JWK_RSA_Private extends JWK_RSA_Public, JWKParameters {
   dp: string;
   /** RSA JWK "dq" (Second Factor CRT Exponent) Parameter */
   dq: string;
-  /**
-   * RSA JWK "oth" (Other Primes Info) Parameter
-   *
-   * This parameter is not supported
-   */
-  oth?: Array<{
-    d?: string;
-    r?: string;
-    t?: string;
-  }>;
   /** RSA JWK "p" (First Prime Factor) Parameter */
   p: string;
   /** RSA JWK "q" (Second Prime Factor) Parameter */
@@ -153,16 +120,6 @@ export interface JWK extends JWKParameters {
   k?: string;
   /** RSA JWK "n" (Modulus) Parameter */
   n?: string;
-  /**
-   * Private RSA JWK "oth" (Other Primes Info) Parameter
-   *
-   * This parameter is not supported
-   */
-  oth?: Array<{
-    d?: string;
-    r?: string;
-    t?: string;
-  }>;
   /** Private RSA JWK "p" (First Prime Factor) Parameter */
   p?: string;
   /** Private RSA JWK "q" (Second Prime Factor) Parameter */
@@ -211,7 +168,11 @@ export interface GenericGetKeyFunction<
  */
 export interface GetKeyFunction<IProtectedHeader, IToken>
   extends
-    GenericGetKeyFunction<IProtectedHeader, IToken, KeyLike | Uint8Array> {}
+    GenericGetKeyFunction<
+      IProtectedHeader,
+      IToken,
+      CryptoKey | KeyObject | JWK | Uint8Array
+    > {}
 
 /**
  * Flattened JWS definition for verify function inputs, allows payload as {@link !Uint8Array} for
@@ -263,8 +224,8 @@ export interface GeneralJWSInput {
 }
 
 /**
- * Flattened JWS definition. Payload is returned as an empty string when JWS Unencoded Payload
- * ({@link https://www.rfc-editor.org/rfc/rfc7797 RFC7797}) is used.
+ * Flattened JWS JSON Serialization Syntax token. Payload is returned as an empty string when JWS
+ * Unencoded Payload ({@link https://www.rfc-editor.org/rfc/rfc7797 RFC7797}) is used.
  */
 export interface FlattenedJWS extends Partial<FlattenedJWSInput> {
   payload: string;
@@ -272,14 +233,15 @@ export interface FlattenedJWS extends Partial<FlattenedJWSInput> {
 }
 
 /**
- * General JWS definition. Payload is returned as an empty string when JWS Unencoded Payload
- * ({@link https://www.rfc-editor.org/rfc/rfc7797 RFC7797}) is used.
+ * General JWS JSON Serialization Syntax token. Payload is returned as an empty string when JWS
+ * Unencoded Payload ({@link https://www.rfc-editor.org/rfc/rfc7797 RFC7797}) is used.
  */
 export interface GeneralJWS {
   payload: string;
   signatures: Omit<FlattenedJWSInput, "payload">[];
 }
 
+/** Header Parameters common to JWE and JWS */
 export interface JoseHeaderParameters {
   /** "kid" (Key ID) Header Parameter */
   kid?: string;
@@ -351,10 +313,10 @@ export interface JWEKeyManagementHeaderParameters {
    * @deprecated You should not use this parameter. It is only really intended for test and vector
    *   validation purposes.
    */
-  epk?: KeyLike;
+  epk?: CryptoKey | KeyObject;
 }
 
-/** Flattened JWE definition. */
+/** Flattened JWE JSON Serialization Syntax token. */
 export interface FlattenedJWE {
   /**
    * The "aad" member MUST be present and contain the value BASE64URL(JWE AAD)) when the JWE AAD
@@ -408,6 +370,7 @@ export interface FlattenedJWE {
   unprotected?: JWEHeaderParameters;
 }
 
+/** General JWE JSON Serialization Syntax token. */
 export interface GeneralJWE
   extends Omit<FlattenedJWE, "encrypted_key" | "header"> {
   recipients: Pick<FlattenedJWE, "encrypted_key" | "header">[];
@@ -507,10 +470,13 @@ export interface JWTClaimVerificationOptions {
   audience?: string | string[];
 
   /**
-   * Expected clock tolerance
+   * Clock skew tolerance
    *
    * - In seconds when number (e.g. 5)
-   * - Parsed as seconds when a string (e.g. "5 seconds", "10 minutes", "2 hours").
+   * - Resolved into a number of seconds when a string (e.g. "5 seconds", "10 minutes", "2 hours").
+   *
+   * Used when validating the JWT "nbf" (Not Before) and "exp" (Expiration Time) claims, and when
+   * validating the "iat" (Issued At) claim if the {@link maxTokenAge `maxTokenAge` option} is set.
    */
   clockTolerance?: string | number;
 
@@ -525,7 +491,7 @@ export interface JWTClaimVerificationOptions {
    * Maximum time elapsed (in seconds) from the JWT "iat" (Issued At) Claim value.
    *
    * - In seconds when number (e.g. 5)
-   * - Parsed as seconds when a string (e.g. "5 seconds", "10 minutes", "2 hours").
+   * - Resolved into a number of seconds when a string (e.g. "5 seconds", "10 minutes", "2 hours").
    *
    * This option makes the JWT "iat" (Issued At) Claim presence required.
    */
@@ -550,13 +516,11 @@ export interface JWTClaimVerificationOptions {
 
   /**
    * Array of required Claim Names that must be present in the JWT Claims Set. Default is that: if
-   * the {@link JWTClaimVerificationOptions.issuer `issuer` option} is set, then JWT "iss" (Issuer)
-   * Claim must be present; if the {@link JWTClaimVerificationOptions.audience `audience` option} is
-   * set, then JWT "aud" (Audience) Claim must be present; if the
-   * {@link JWTClaimVerificationOptions.subject `subject` option} is set, then JWT "sub" (Subject)
-   * Claim must be present; if the
-   * {@link JWTClaimVerificationOptions.maxTokenAge `maxTokenAge` option} is set, then JWT "iat"
-   * (Issued At) Claim must be present.
+   * the {@link issuer `issuer` option} is set, then JWT "iss" (Issuer) Claim must be present; if the
+   * {@link audience `audience` option} is set, then JWT "aud" (Audience) Claim must be present; if
+   * the {@link subject `subject` option} is set, then JWT "sub" (Subject) Claim must be present; if
+   * the {@link maxTokenAge `maxTokenAge` option} is set, then JWT "iat" (Issued At) Claim must be
+   * present.
    */
   requiredClaims?: string[];
 }
@@ -630,6 +594,7 @@ export interface JWTPayload {
   [propName: string]: unknown;
 }
 
+/** Flattened JWE JSON Serialization Syntax decryption result */
 export interface FlattenedDecryptResult {
   /** JWE AAD. */
   additionalAuthenticatedData?: Uint8Array;
@@ -647,8 +612,10 @@ export interface FlattenedDecryptResult {
   unprotectedHeader?: JWEHeaderParameters;
 }
 
+/** General JWE JSON Serialization Syntax decryption result */
 export interface GeneralDecryptResult extends FlattenedDecryptResult {}
 
+/** Compact JWE decryption result */
 export interface CompactDecryptResult {
   /** Plaintext. */
   plaintext: Uint8Array;
@@ -657,6 +624,7 @@ export interface CompactDecryptResult {
   protectedHeader: CompactJWEHeaderParameters;
 }
 
+/** Flattened JWS JSON Serialization Syntax verification result */
 export interface FlattenedVerifyResult {
   /** JWS Payload. */
   payload: Uint8Array;
@@ -668,8 +636,10 @@ export interface FlattenedVerifyResult {
   unprotectedHeader?: JWSHeaderParameters;
 }
 
+/** General JWS JSON Serialization Syntax verification result */
 export interface GeneralVerifyResult extends FlattenedVerifyResult {}
 
+/** Compact JWS verification result */
 export interface CompactVerifyResult {
   /** JWS Payload. */
   payload: Uint8Array;
@@ -678,6 +648,7 @@ export interface CompactVerifyResult {
   protectedHeader: CompactJWSHeaderParameters;
 }
 
+/** Signed JSON Web Token (JWT) verification result */
 export interface JWTVerifyResult<PayloadType = JWTPayload> {
   /** JWT Claims Set. */
   payload: PayloadType & JWTPayload;
@@ -686,6 +657,7 @@ export interface JWTVerifyResult<PayloadType = JWTPayload> {
   protectedHeader: JWTHeaderParameters;
 }
 
+/** Encrypted JSON Web Token (JWT) decryption result */
 export interface JWTDecryptResult<PayloadType = JWTPayload> {
   /** JWT Claims Set. */
   payload: PayloadType & JWTPayload;
@@ -694,9 +666,10 @@ export interface JWTDecryptResult<PayloadType = JWTPayload> {
   protectedHeader: CompactJWEHeaderParameters;
 }
 
-export interface ResolvedKey<KeyLikeType extends KeyLike = KeyLike> {
+/** When key resolver functions are used this becomes part of successful resolves */
+export interface ResolvedKey {
   /** Key resolved from the key resolver function. */
-  key: KeyLikeType | Uint8Array;
+  key: CryptoKey | Uint8Array;
 }
 
 /** Recognized Compact JWS Header Parameters, any other Header Members may also be present. */
@@ -720,4 +693,22 @@ export interface JSONWebKeySet {
   keys: JWK[];
 }
 
-export type CryptoRuntime = "WebCryptoAPI" | "node:crypto";
+/**
+ * {@link !KeyObject} is a representation of a key/secret available in the Node.js runtime. You may
+ * use the Node.js runtime APIs {@link !createPublicKey}, {@link !createPrivateKey}, and
+ * {@link !createSecretKey} to obtain a {@link !KeyObject} from your existing key material.
+ */
+export interface KeyObject {
+  type: string;
+}
+
+/**
+ * {@link !CryptoKey} is a representation of a key/secret available in all supported runtimes. In
+ * addition to the {@link key/import Key Import Functions} you may use the
+ * {@link !SubtleCrypto.importKey} API to obtain a {@link !CryptoKey} from your existing key
+ * material.
+ */
+export type CryptoKey = Extract<
+  Awaited<ReturnType<typeof crypto.subtle.generateKey>>,
+  { type: string }
+>;

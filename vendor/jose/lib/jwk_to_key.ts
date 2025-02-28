@@ -1,8 +1,7 @@
-import crypto from "./webcrypto.ts";
-import { JOSENotSupported } from "../util/errors.ts";
-import type { JWK } from "../types.d.ts";
+import { JOSENotSupported } from "../util/errors.js";
+import type * as types from "../types.d.ts";
 
-function subtleMapping(jwk: JWK): {
+function subtleMapping(jwk: types.JWK): {
   algorithm: RsaHashedImportParams | EcKeyAlgorithm | Algorithm;
   keyUsages: KeyUsage[];
 } {
@@ -74,8 +73,9 @@ function subtleMapping(jwk: JWK): {
     }
     case "OKP": {
       switch (jwk.alg) {
+        case "Ed25519": // Fall through
         case "EdDSA":
-          algorithm = { name: jwk.crv! };
+          algorithm = { name: "Ed25519" };
           keyUsages = jwk.d ? ["sign"] : ["verify"];
           break;
         case "ECDH-ES":
@@ -101,7 +101,7 @@ function subtleMapping(jwk: JWK): {
   return { algorithm, keyUsages };
 }
 
-const parse = async (jwk: JWK): Promise<CryptoKey> => {
+export default async (jwk: types.JWK): Promise<types.CryptoKey> => {
   if (!jwk.alg) {
     throw new TypeError(
       '"alg" argument is required when "jwk.alg" is not present',
@@ -109,19 +109,16 @@ const parse = async (jwk: JWK): Promise<CryptoKey> => {
   }
 
   const { algorithm, keyUsages } = subtleMapping(jwk);
-  const rest: [
-    RsaHashedImportParams | EcKeyAlgorithm | Algorithm,
-    boolean,
-    KeyUsage[],
-  ] = [
-    algorithm,
-    jwk.ext ?? false,
-    (jwk.key_ops as KeyUsage[]) ?? keyUsages,
-  ];
 
-  const keyData: JWK = { ...jwk };
+  const keyData: types.JWK = { ...jwk };
   delete keyData.alg;
   delete keyData.use;
-  return crypto.subtle.importKey("jwk", keyData, ...rest);
+
+  return crypto.subtle.importKey(
+    "jwk",
+    keyData,
+    algorithm,
+    jwk.ext ?? (jwk.d ? false : true),
+    (jwk.key_ops as KeyUsage[]) ?? keyUsages,
+  );
 };
-export default parse;

@@ -1,18 +1,13 @@
-import type {
-  JWEHeaderParameters,
-  JWSHeaderParameters,
-  JWTClaimVerificationOptions,
-  JWTPayload,
-} from "../types.d.ts";
+import type * as types from "../types.d.ts";
 import {
   JWTClaimValidationFailed,
   JWTExpired,
   JWTInvalid,
-} from "../util/errors.ts";
-import { decoder } from "./buffer_utils.ts";
-import epoch from "./epoch.ts";
-import secs from "./secs.ts";
-import isObject from "./is_object.ts";
+} from "../util/errors.js";
+import { decoder } from "./buffer_utils.js";
+import epoch from "./epoch.js";
+import secs from "./secs.js";
+import isObject from "./is_object.js";
 
 const normalizeTyp = (value: string) =>
   value.toLowerCase().replace(/^application\//, "");
@@ -32,9 +27,9 @@ const checkAudiencePresence = (audPayload: unknown, audOption: unknown[]) => {
 };
 
 export default (
-  protectedHeader: JWEHeaderParameters | JWSHeaderParameters,
+  protectedHeader: types.JWEHeaderParameters | types.JWSHeaderParameters,
   encodedPayload: Uint8Array,
-  options: JWTClaimVerificationOptions = {},
+  options: types.JWTClaimVerificationOptions = {},
 ) => {
   let payload!: { [propName: string]: unknown };
   try {
@@ -213,5 +208,5 @@ export default (
     }
   }
 
-  return payload as JWTPayload;
+  return payload as types.JWTPayload;
 };

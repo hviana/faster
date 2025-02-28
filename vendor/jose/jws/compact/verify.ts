@@ -1,16 +1,13 @@
-import { flattenedVerify } from "../flattened/verify.ts";
-import { JWSInvalid } from "../../util/errors.ts";
-import { decoder } from "../../lib/buffer_utils.ts";
-import type {
-  CompactJWSHeaderParameters,
-  CompactVerifyResult,
-  FlattenedJWSInput,
-  GenericGetKeyFunction,
-  JWK,
-  KeyLike,
-  ResolvedKey,
-  VerifyOptions,
-} from "../../types.d.ts";
+/**
+ * Verifying JSON Web Signature (JWS) in Compact Serialization
+ *
+ * @module
+ */
+
+import type * as types from "../../types.d.ts";
+import { flattenedVerify } from "../flattened/verify.js";
+import { JWSInvalid } from "../../util/errors.js";
+import { decoder } from "../../lib/buffer_utils.js";
 
 /**
  * Interface for Compact JWS Verification dynamic key resolution. No token components have been
@@ -19,10 +16,10 @@ import type {
  * @see {@link jwks/remote.createRemoteJWKSet createRemoteJWKSet} to verify using a remote JSON Web Key Set.
  */
 export interface CompactVerifyGetKey extends
-  GenericGetKeyFunction<
-    CompactJWSHeaderParameters,
-    FlattenedJWSInput,
-    KeyLike | JWK | Uint8Array
+  types.GenericGetKeyFunction<
+    types.CompactJWSHeaderParameters,
+    types.FlattenedJWSInput,
+    types.CryptoKey | types.KeyObject | types.JWK | Uint8Array
   > {}
 
 /**
@@ -31,6 +28,18 @@ export interface CompactVerifyGetKey extends
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/jws/compact/verify'`.
  *
+ * @example
+ *
+ * ```js
+ * const jws =
+ *   'eyJhbGciOiJFUzI1NiJ9.SXTigJlzIGEgZGFuZ2Vyb3VzIGJ1c2luZXNzLCBGcm9kbywgZ29pbmcgb3V0IHlvdXIgZG9vci4.kkAs_gPPxWMI3rHuVlxHaTPfDWDoqdI8jSvuSmqV-8IHIWXg9mcAeC9ggV-45ZHRbiRJ3obUIFo1rHphPA5URg'
+ *
+ * const { payload, protectedHeader } = await jose.compactVerify(jws, publicKey)
+ *
+ * console.log(protectedHeader)
+ * console.log(new TextDecoder().decode(payload))
+ * ```
+ *
  * @param jws Compact JWS.
  * @param key Key to verify the JWS with. See
  *   {@link https://github.com/panva/jose/issues/210#jws-alg Algorithm Key Requirements}.
@@ -38,24 +47,29 @@ export interface CompactVerifyGetKey extends
  */
 export function compactVerify(
   jws: string | Uint8Array,
-  key: KeyLike | Uint8Array | JWK,
-  options?: VerifyOptions,
-): Promise<CompactVerifyResult>;
+  key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+  options?: types.VerifyOptions,
+): Promise<types.CompactVerifyResult>;
 /**
  * @param jws Compact JWS.
  * @param getKey Function resolving a key to verify the JWS with. See
  *   {@link https://github.com/panva/jose/issues/210#jws-alg Algorithm Key Requirements}.
  * @param options JWS Verify options.
  */
-export function compactVerify<KeyLikeType extends KeyLike = KeyLike>(
+export function compactVerify(
   jws: string | Uint8Array,
   getKey: CompactVerifyGetKey,
-  options?: VerifyOptions,
-): Promise<CompactVerifyResult & ResolvedKey<KeyLikeType>>;
+  options?: types.VerifyOptions,
+): Promise<types.CompactVerifyResult & types.ResolvedKey>;
 export async function compactVerify(
   jws: string | Uint8Array,
-  key: KeyLike | Uint8Array | JWK | CompactVerifyGetKey,
-  options?: VerifyOptions,
+  key:
+    | types.CryptoKey
+    | types.KeyObject
+    | types.JWK
+    | Uint8Array
+    | CompactVerifyGetKey,
+  options?: types.VerifyOptions,
 ) {
   if (jws instanceof Uint8Array) {
     jws = decoder.decode(jws);

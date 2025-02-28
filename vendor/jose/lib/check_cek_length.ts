@@ -1,6 +1,6 @@
-import { JWEInvalid } from "../util/errors.ts";
+import { JWEInvalid } from "../util/errors.js";
 
-const checkCekLength = (cek: Uint8Array, expected: number) => {
+export default (cek: Uint8Array, expected: number) => {
   const actual = cek.byteLength << 3;
   if (actual !== expected) {
     throw new JWEInvalid(
@@ -8,5 +8,3 @@ const checkCekLength = (cek: Uint8Array, expected: number) => {
     );
   }
 };
-
-export default checkCekLength;

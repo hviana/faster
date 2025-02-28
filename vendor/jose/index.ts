@@ -1,82 +1,79 @@
-export { compactDecrypt } from "./jwe/compact/decrypt.ts";
-export type { CompactDecryptGetKey } from "./jwe/compact/decrypt.ts";
-export { flattenedDecrypt } from "./jwe/flattened/decrypt.ts";
-export type { FlattenedDecryptGetKey } from "./jwe/flattened/decrypt.ts";
-export { generalDecrypt } from "./jwe/general/decrypt.ts";
-export type { GeneralDecryptGetKey } from "./jwe/general/decrypt.ts";
-export { GeneralEncrypt } from "./jwe/general/encrypt.ts";
-export type { Recipient } from "./jwe/general/encrypt.ts";
+export { compactDecrypt } from "./jwe/compact/decrypt.js";
+export type { CompactDecryptGetKey } from "./jwe/compact/decrypt.js";
+export { flattenedDecrypt } from "./jwe/flattened/decrypt.js";
+export type { FlattenedDecryptGetKey } from "./jwe/flattened/decrypt.js";
+export { generalDecrypt } from "./jwe/general/decrypt.js";
+export type { GeneralDecryptGetKey } from "./jwe/general/decrypt.js";
+export { GeneralEncrypt } from "./jwe/general/encrypt.js";
+export type { Recipient } from "./jwe/general/encrypt.js";
 
-export { compactVerify } from "./jws/compact/verify.ts";
-export type { CompactVerifyGetKey } from "./jws/compact/verify.ts";
-export { flattenedVerify } from "./jws/flattened/verify.ts";
-export type { FlattenedVerifyGetKey } from "./jws/flattened/verify.ts";
-export { generalVerify } from "./jws/general/verify.ts";
-export type { GeneralVerifyGetKey } from "./jws/general/verify.ts";
+export { compactVerify } from "./jws/compact/verify.js";
+export type { CompactVerifyGetKey } from "./jws/compact/verify.js";
+export { flattenedVerify } from "./jws/flattened/verify.js";
+export type { FlattenedVerifyGetKey } from "./jws/flattened/verify.js";
+export { generalVerify } from "./jws/general/verify.js";
+export type { GeneralVerifyGetKey } from "./jws/general/verify.js";
 
-export { jwtVerify } from "./jwt/verify.ts";
-export type { JWTVerifyGetKey, JWTVerifyOptions } from "./jwt/verify.ts";
-export { jwtDecrypt } from "./jwt/decrypt.ts";
-export type { JWTDecryptGetKey, JWTDecryptOptions } from "./jwt/decrypt.ts";
-export type { ProduceJWT } from "./jwt/produce.ts";
+export { jwtVerify } from "./jwt/verify.js";
+export type { JWTVerifyGetKey, JWTVerifyOptions } from "./jwt/verify.js";
+export { jwtDecrypt } from "./jwt/decrypt.js";
+export type { JWTDecryptGetKey, JWTDecryptOptions } from "./jwt/decrypt.js";
+export type { ProduceJWT } from "./jwt/produce.js";
 
-export { CompactEncrypt } from "./jwe/compact/encrypt.ts";
-export { FlattenedEncrypt } from "./jwe/flattened/encrypt.ts";
+export { CompactEncrypt } from "./jwe/compact/encrypt.js";
+export { FlattenedEncrypt } from "./jwe/flattened/encrypt.js";
 
-export { CompactSign } from "./jws/compact/sign.ts";
-export { FlattenedSign } from "./jws/flattened/sign.ts";
-export { GeneralSign } from "./jws/general/sign.ts";
-export type { Signature } from "./jws/general/sign.ts";
+export { CompactSign } from "./jws/compact/sign.js";
+export { FlattenedSign } from "./jws/flattened/sign.js";
+export { GeneralSign } from "./jws/general/sign.js";
+export type { Signature } from "./jws/general/sign.js";
 
-export { SignJWT } from "./jwt/sign.ts";
-export { EncryptJWT } from "./jwt/encrypt.ts";
+export { SignJWT } from "./jwt/sign.js";
+export { EncryptJWT } from "./jwt/encrypt.js";
 
 export {
   calculateJwkThumbprint,
   calculateJwkThumbprintUri,
-} from "./jwk/thumbprint.ts";
-export { EmbeddedJWK } from "./jwk/embedded.ts";
+} from "./jwk/thumbprint.js";
+export { EmbeddedJWK } from "./jwk/embedded.js";
 
-export { createLocalJWKSet } from "./jwks/local.ts";
-export {
-  createRemoteJWKSet,
-  experimental_jwksCache,
-  jwksCache,
-} from "./jwks/remote.ts";
+export { createLocalJWKSet } from "./jwks/local.js";
+export { createRemoteJWKSet, customFetch, jwksCache } from "./jwks/remote.js";
 export type {
   ExportedJWKSCache,
+  FetchImplementation,
   JWKSCacheInput,
   RemoteJWKSetOptions,
-} from "./jwks/remote.ts";
+} from "./jwks/remote.js";
 
-export { UnsecuredJWT } from "./jwt/unsecured.ts";
-export type { UnsecuredResult } from "./jwt/unsecured.ts";
+export { UnsecuredJWT } from "./jwt/unsecured.js";
+export type { UnsecuredResult } from "./jwt/unsecured.js";
 
-export { exportJWK, exportPKCS8, exportSPKI } from "./key/export.ts";
+export { exportJWK, exportPKCS8, exportSPKI } from "./key/export.js";
 
 export {
   importJWK,
   importPKCS8,
   importSPKI,
   importX509,
-} from "./key/import.ts";
-export type { PEMImportOptions } from "./key/import.ts";
+} from "./key/import.js";
+export type { KeyImportOptions } from "./key/import.js";
 
-export { decodeProtectedHeader } from "./util/decode_protected_header.ts";
-export { decodeJwt } from "./util/decode_jwt.ts";
-export type { ProtectedHeaderParameters } from "./util/decode_protected_header.ts";
+export { decodeProtectedHeader } from "./util/decode_protected_header.js";
+export { decodeJwt } from "./util/decode_jwt.js";
+export type { ProtectedHeaderParameters } from "./util/decode_protected_header.js";
 
-export * as errors from "./util/errors.ts";
+export * as errors from "./util/errors.js";
 
-export { generateKeyPair } from "./key/generate_key_pair.ts";
+export { generateKeyPair } from "./key/generate_key_pair.js";
 export type {
   GenerateKeyPairOptions,
   GenerateKeyPairResult,
-} from "./key/generate_key_pair.ts";
-export { generateSecret } from "./key/generate_secret.ts";
-export type { GenerateSecretOptions } from "./key/generate_secret.ts";
+} from "./key/generate_key_pair.js";
+export { generateSecret } from "./key/generate_secret.js";
+export type { GenerateSecretOptions } from "./key/generate_secret.js";
 
-export * as base64url from "./util/base64url.ts";
+export * as base64url from "./util/base64url.js";
 
 export type {
   CompactDecryptResult,
@@ -84,7 +81,7 @@ export type {
   CompactJWSHeaderParameters,
   CompactVerifyResult,
   CritOption,
-  CryptoRuntime,
+  CryptoKey,
   DecryptOptions,
   EncryptOptions,
   FlattenedDecryptResult,
@@ -117,10 +114,16 @@ export type {
   JWTHeaderParameters,
   JWTPayload,
   JWTVerifyResult,
-  KeyLike,
+  KeyObject,
   ResolvedKey,
   SignOptions,
   VerifyOptions,
 } from "./types.d.ts";
 
-export { default as cryptoRuntime } from "./util/runtime.ts";
+/**
+ * In prior releases this indicated whether a Node.js-specific build was loaded, this is now fixed
+ * to `"WebCryptoAPI"`
+ *
+ * @deprecated
+ */
+export const cryptoRuntime = "WebCryptoAPI";

@@ -1,34 +1,48 @@
-import { encode as base64url } from "../../runtime/base64url.ts";
-import { unprotected } from "../../lib/private_symbols.ts";
-import encrypt from "../../runtime/encrypt.ts";
+/**
+ * Encrypting JSON Web Encryption (JWE) in Flattened JSON Serialization
+ *
+ * @module
+ */
 
-import type {
-  EncryptOptions,
-  FlattenedJWE,
-  JWEHeaderParameters,
-  JWEKeyManagementHeaderParameters,
-  KeyLike,
-} from "../../types.d.ts";
-import encryptKeyManagement from "../../lib/encrypt_key_management.ts";
-import { JOSENotSupported, JWEInvalid } from "../../util/errors.ts";
-import isDisjoint from "../../lib/is_disjoint.ts";
-import { concat, decoder, encoder } from "../../lib/buffer_utils.ts";
-import validateCrit from "../../lib/validate_crit.ts";
+import { encode as b64u } from "../../util/base64url.js";
+import { unprotected } from "../../lib/private_symbols.js";
+import encrypt from "../../lib/encrypt.js";
+import type * as types from "../../types.d.ts";
+import encryptKeyManagement from "../../lib/encrypt_key_management.js";
+import { JOSENotSupported, JWEInvalid } from "../../util/errors.js";
+import isDisjoint from "../../lib/is_disjoint.js";
+import { concat, decoder, encoder } from "../../lib/buffer_utils.js";
+import validateCrit from "../../lib/validate_crit.js";
+import normalizeKey from "../../lib/normalize_key.js";
+import checkKeyType from "../../lib/check_key_type.js";
 
 /**
  * The FlattenedEncrypt class is used to build and encrypt Flattened JWE objects.
  *
  * This class is exported (as a named export) from the main `'jose'` module entry point as well as
  * from its subpath export `'jose/jwe/flattened/encrypt'`.
+ *
+ * @example
+ *
+ * ```js
+ * const jwe = await new jose.FlattenedEncrypt(
+ *   new TextEncoder().encode('It’s a dangerous business, Frodo, going out your door.'),
+ * )
+ *   .setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM' })
+ *   .setAdditionalAuthenticatedData(encoder.encode('The Fellowship of the Ring'))
+ *   .encrypt(publicKey)
+ *
+ * console.log(jwe)
+ * ```
  */
 export class FlattenedEncrypt {
   private _plaintext: Uint8Array;
 
-  private _protectedHeader!: JWEHeaderParameters | undefined;
+  private _protectedHeader!: types.JWEHeaderParameters | undefined;
 
-  private _sharedUnprotectedHeader!: JWEHeaderParameters | undefined;
+  private _sharedUnprotectedHeader!: types.JWEHeaderParameters | undefined;
 
-  private _unprotectedHeader!: JWEHeaderParameters | undefined;
+  private _unprotectedHeader!: types.JWEHeaderParameters | undefined;
 
   private _aad!: Uint8Array | undefined;
 
@@ -36,7 +50,7 @@ export class FlattenedEncrypt {
 
   private _iv!: Uint8Array | undefined;
 
-  private _keyManagementParameters!: JWEKeyManagementHeaderParameters;
+  private _keyManagementParameters!: types.JWEKeyManagementHeaderParameters;
 
   /** @param plaintext Binary representation of the plaintext to encrypt. */
   constructor(plaintext: Uint8Array) {
@@ -55,7 +69,7 @@ export class FlattenedEncrypt {
    * @param parameters JWE Key Management parameters.
    */
   setKeyManagementParameters(
-    parameters: JWEKeyManagementHeaderParameters,
+    parameters: types.JWEKeyManagementHeaderParameters,
   ): this {
     if (this._keyManagementParameters) {
       throw new TypeError("setKeyManagementParameters can only be called once");
@@ -69,7 +83,7 @@ export class FlattenedEncrypt {
    *
    * @param protectedHeader JWE Protected Header.
    */
-  setProtectedHeader(protectedHeader: JWEHeaderParameters): this {
+  setProtectedHeader(protectedHeader: types.JWEHeaderParameters): this {
     if (this._protectedHeader) {
       throw new TypeError("setProtectedHeader can only be called once");
     }
@@ -83,7 +97,7 @@ export class FlattenedEncrypt {
    * @param sharedUnprotectedHeader JWE Shared Unprotected Header.
    */
   setSharedUnprotectedHeader(
-    sharedUnprotectedHeader: JWEHeaderParameters,
+    sharedUnprotectedHeader: types.JWEHeaderParameters,
   ): this {
     if (this._sharedUnprotectedHeader) {
       throw new TypeError("setSharedUnprotectedHeader can only be called once");
@@ -97,7 +111,7 @@ export class FlattenedEncrypt {
    *
    * @param unprotectedHeader JWE Per-Recipient Unprotected Header.
    */
-  setUnprotectedHeader(unprotectedHeader: JWEHeaderParameters): this {
+  setUnprotectedHeader(unprotectedHeader: types.JWEHeaderParameters): this {
     if (this._unprotectedHeader) {
       throw new TypeError("setUnprotectedHeader can only be called once");
     }
@@ -157,9 +171,9 @@ export class FlattenedEncrypt {
    * @param options JWE Encryption options.
    */
   async encrypt(
-    key: KeyLike | Uint8Array,
-    options?: EncryptOptions,
-  ): Promise<FlattenedJWE> {
+    key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+    options?: types.EncryptOptions,
+  ): Promise<types.FlattenedJWE> {
     if (
       !this._protectedHeader && !this._unprotectedHeader &&
       !this._sharedUnprotectedHeader
@@ -181,7 +195,7 @@ export class FlattenedEncrypt {
       );
     }
 
-    const joseHeader: JWEHeaderParameters = {
+    const joseHeader: types.JWEHeaderParameters = {
       ...this._protectedHeader,
       ...this._unprotectedHeader,
       ...this._sharedUnprotectedHeader,
@@ -223,13 +237,16 @@ export class FlattenedEncrypt {
       );
     }
 
-    let cek: KeyLike | Uint8Array;
+    checkKeyType(alg === "dir" ? enc : alg, key, "encrypt");
+
+    let cek: types.CryptoKey | Uint8Array;
     {
       let parameters: { [propName: string]: unknown } | undefined;
+      const k = await normalizeKey(key, alg);
       ({ cek, encryptedKey, parameters } = await encryptKeyManagement(
         alg,
         enc,
-        key,
+        k,
         this._cek,
         this._keyManagementParameters,
       ));
@@ -257,14 +274,14 @@ export class FlattenedEncrypt {
     let aadMember: string | undefined;
     if (this._protectedHeader) {
       protectedHeader = encoder.encode(
-        base64url(JSON.stringify(this._protectedHeader)),
+        b64u(JSON.stringify(this._protectedHeader)),
       );
     } else {
       protectedHeader = encoder.encode("");
     }
 
     if (this._aad) {
-      aadMember = base64url(this._aad);
+      aadMember = b64u(this._aad);
       additionalData = concat(
         protectedHeader,
         encoder.encode("."),
@@ -282,20 +299,20 @@ export class FlattenedEncrypt {
       additionalData,
     );
 
-    const jwe: FlattenedJWE = {
-      ciphertext: base64url(ciphertext),
+    const jwe: types.FlattenedJWE = {
+      ciphertext: b64u(ciphertext),
     };
 
     if (iv) {
-      jwe.iv = base64url(iv);
+      jwe.iv = b64u(iv);
     }
 
     if (tag) {
-      jwe.tag = base64url(tag);
+      jwe.tag = b64u(tag);
     }
 
     if (encryptedKey) {
-      jwe.encrypted_key = base64url(encryptedKey);
+      jwe.encrypted_key = b64u(encryptedKey);
     }
 
     if (aadMember) {

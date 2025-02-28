@@ -1,30 +1,25 @@
-import { decode as base64url } from "../../runtime/base64url.ts";
-import verify from "../../runtime/verify.ts";
+/**
+ * Verifying JSON Web Signature (JWS) in Flattened JSON Serialization
+ *
+ * @module
+ */
+
+import type * as types from "../../types.d.ts";
+import { decode as b64u } from "../../util/base64url.js";
+import verify from "../../lib/verify.js";
 
 import {
   JOSEAlgNotAllowed,
   JWSInvalid,
   JWSSignatureVerificationFailed,
-} from "../../util/errors.ts";
-import { concat, decoder, encoder } from "../../lib/buffer_utils.ts";
-import isDisjoint from "../../lib/is_disjoint.ts";
-import isObject from "../../lib/is_object.ts";
-import { checkKeyTypeWithJwk } from "../../lib/check_key_type.ts";
-import validateCrit from "../../lib/validate_crit.ts";
-import validateAlgorithms from "../../lib/validate_algorithms.ts";
-
-import type {
-  FlattenedJWSInput,
-  FlattenedVerifyResult,
-  GenericGetKeyFunction,
-  JWK,
-  JWSHeaderParameters,
-  KeyLike,
-  ResolvedKey,
-  VerifyOptions,
-} from "../../types.d.ts";
-import { isJWK } from "../../lib/is_jwk.ts";
-import { importJWK } from "../../key/import.ts";
+} from "../../util/errors.js";
+import { concat, decoder, encoder } from "../../lib/buffer_utils.js";
+import isDisjoint from "../../lib/is_disjoint.js";
+import isObject from "../../lib/is_object.js";
+import checkKeyType from "../../lib/check_key_type.js";
+import validateCrit from "../../lib/validate_crit.js";
+import validateAlgorithms from "../../lib/validate_algorithms.js";
+import normalizeKey from "../../lib/normalize_key.js";
 
 /**
  * Interface for Flattened JWS Verification dynamic key resolution. No token components have been
@@ -33,10 +28,10 @@ import { importJWK } from "../../key/import.ts";
  * @see {@link jwks/remote.createRemoteJWKSet createRemoteJWKSet} to verify using a remote JSON Web Key Set.
  */
 export interface FlattenedVerifyGetKey extends
-  GenericGetKeyFunction<
-    JWSHeaderParameters | undefined,
-    FlattenedJWSInput,
-    KeyLike | JWK | Uint8Array
+  types.GenericGetKeyFunction<
+    types.JWSHeaderParameters | undefined,
+    types.FlattenedJWSInput,
+    types.CryptoKey | types.KeyObject | types.JWK | Uint8Array
   > {}
 
 /**
@@ -45,31 +40,53 @@ export interface FlattenedVerifyGetKey extends
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/jws/flattened/verify'`.
  *
+ * @example
+ *
+ * ```js
+ * const decoder = new TextDecoder()
+ * const jws = {
+ *   signature:
+ *     'FVVOXwj6kD3DqdfD9yYqfT2W9jv-Nop4kOehp_DeDGNB5dQNSPRvntBY6xH3uxlCxE8na9d_kyhYOcanpDJ0EA',
+ *   payload: 'SXTigJlzIGEgZGFuZ2Vyb3VzIGJ1c2luZXNzLCBGcm9kbywgZ29pbmcgb3V0IHlvdXIgZG9vci4',
+ *   protected: 'eyJhbGciOiJFUzI1NiJ9',
+ * }
+ *
+ * const { payload, protectedHeader } = await jose.flattenedVerify(jws, publicKey)
+ *
+ * console.log(protectedHeader)
+ * console.log(decoder.decode(payload))
+ * ```
+ *
  * @param jws Flattened JWS.
  * @param key Key to verify the JWS with. See
  *   {@link https://github.com/panva/jose/issues/210#jws-alg Algorithm Key Requirements}.
  * @param options JWS Verify options.
  */
 export function flattenedVerify(
-  jws: FlattenedJWSInput,
-  key: KeyLike | Uint8Array | JWK,
-  options?: VerifyOptions,
-): Promise<FlattenedVerifyResult>;
+  jws: types.FlattenedJWSInput,
+  key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+  options?: types.VerifyOptions,
+): Promise<types.FlattenedVerifyResult>;
 /**
  * @param jws Flattened JWS.
  * @param getKey Function resolving a key to verify the JWS with. See
  *   {@link https://github.com/panva/jose/issues/210#jws-alg Algorithm Key Requirements}.
  * @param options JWS Verify options.
  */
-export function flattenedVerify<KeyLikeType extends KeyLike = KeyLike>(
-  jws: FlattenedJWSInput,
+export function flattenedVerify(
+  jws: types.FlattenedJWSInput,
   getKey: FlattenedVerifyGetKey,
-  options?: VerifyOptions,
-): Promise<FlattenedVerifyResult & ResolvedKey<KeyLikeType>>;
+  options?: types.VerifyOptions,
+): Promise<types.FlattenedVerifyResult & types.ResolvedKey>;
 export async function flattenedVerify(
-  jws: FlattenedJWSInput,
-  key: KeyLike | Uint8Array | JWK | FlattenedVerifyGetKey,
-  options?: VerifyOptions,
+  jws: types.FlattenedJWSInput,
+  key:
+    | types.CryptoKey
+    | types.KeyObject
+    | types.JWK
+    | Uint8Array
+    | FlattenedVerifyGetKey,
+  options?: types.VerifyOptions,
 ) {
   if (!isObject(jws)) {
     throw new JWSInvalid("Flattened JWS must be an object");
@@ -97,10 +114,10 @@ export async function flattenedVerify(
     throw new JWSInvalid("JWS Unprotected Header incorrect type");
   }
 
-  let parsedProt: JWSHeaderParameters = {};
+  let parsedProt: types.JWSHeaderParameters = {};
   if (jws.protected) {
     try {
-      const protectedHeader = base64url(jws.protected);
+      const protectedHeader = b64u(jws.protected);
       parsedProt = JSON.parse(decoder.decode(protectedHeader));
     } catch {
       throw new JWSInvalid("JWS Protected Header is invalid");
@@ -112,7 +129,7 @@ export async function flattenedVerify(
     );
   }
 
-  const joseHeader: JWSHeaderParameters = {
+  const joseHeader: types.JWSHeaderParameters = {
     ...parsedProt,
     ...jws.header,
   };
@@ -168,13 +185,9 @@ export async function flattenedVerify(
   if (typeof key === "function") {
     key = await key(parsedProt, jws);
     resolvedKey = true;
-    checkKeyTypeWithJwk(alg, key, "verify");
-    if (isJWK(key)) {
-      key = await importJWK(key, alg);
-    }
-  } else {
-    checkKeyTypeWithJwk(alg, key, "verify");
   }
+
+  checkKeyType(alg, key, "verify");
 
   const data = concat(
     encoder.encode(jws.protected ?? ""),
@@ -183,11 +196,13 @@ export async function flattenedVerify(
   );
   let signature: Uint8Array;
   try {
-    signature = base64url(jws.signature);
+    signature = b64u(jws.signature);
   } catch {
     throw new JWSInvalid("Failed to base64url decode the signature");
   }
-  const verified = await verify(alg, key, signature, data);
+
+  const k = await normalizeKey(key, alg);
+  const verified = await verify(alg, k, signature, data);
 
   if (!verified) {
     throw new JWSSignatureVerificationFailed();
@@ -196,7 +211,7 @@ export async function flattenedVerify(
   let payload: Uint8Array;
   if (b64) {
     try {
-      payload = base64url(jws.payload);
+      payload = b64u(jws.payload);
     } catch {
       throw new JWSInvalid("Failed to base64url decode the payload");
     }
@@ -206,7 +221,7 @@ export async function flattenedVerify(
     payload = jws.payload;
   }
 
-  const result: FlattenedVerifyResult = { payload };
+  const result: types.FlattenedVerifyResult = { payload };
 
   if (jws.protected !== undefined) {
     result.protectedHeader = parsedProt;
@@ -217,7 +232,7 @@ export async function flattenedVerify(
   }
 
   if (resolvedKey) {
-    return { ...result, key };
+    return { ...result, key: k };
   }
 
   return result;

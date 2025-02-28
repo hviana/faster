@@ -1,5 +1,4 @@
-import { JOSENotSupported } from "../util/errors.ts";
-import random from "../runtime/random.ts";
+import { JOSENotSupported } from "../util/errors.js";
 
 export function bitLength(alg: string) {
   switch (alg) {
@@ -19,4 +18,4 @@ export function bitLength(alg: string) {
   }
 }
 export default (alg: string): Uint8Array =>
-  random(new Uint8Array(bitLength(alg) >> 3));
+  crypto.getRandomValues(new Uint8Array(bitLength(alg) >> 3));

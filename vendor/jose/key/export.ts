@@ -1,43 +1,81 @@
-import { toSPKI as exportPublic } from "../runtime/asn1.ts";
-import { toPKCS8 as exportPrivate } from "../runtime/asn1.ts";
-import keyToJWK from "../runtime/key_to_jwk.ts";
+/**
+ * Cryptographic key export functions
+ *
+ * @module
+ */
 
-import type { JWK, KeyLike } from "../types.d.ts";
+import {
+  toPKCS8 as exportPrivate,
+  toSPKI as exportPublic,
+} from "../lib/asn1.js";
+import keyToJWK from "../lib/key_to_jwk.js";
+
+import type * as types from "../types.d.ts";
 
 /**
- * Exports a runtime-specific public key representation ({@link !KeyObject} or {@link !CryptoKey}) to
- * a PEM-encoded SPKI string format.
+ * Exports a public {@link !CryptoKey} or {@link !KeyObject} to a PEM-encoded SPKI string format.
  *
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/key/export'`.
  *
- * @param key Key representation to transform to a PEM-encoded SPKI string format.
+ * @example
+ *
+ * ```js
+ * const spkiPem = await jose.exportSPKI(publicKey)
+ *
+ * console.log(spkiPem)
+ * ```
+ *
+ * @param key Key to export to a PEM-encoded SPKI string format.
  */
-export async function exportSPKI(key: KeyLike): Promise<string> {
+export async function exportSPKI(
+  key: types.CryptoKey | types.KeyObject,
+): Promise<string> {
   return exportPublic(key);
 }
 
 /**
- * Exports a runtime-specific private key representation ({@link !KeyObject} or {@link !CryptoKey}) to
- * a PEM-encoded PKCS8 string format.
+ * Exports a private {@link !CryptoKey} or {@link !KeyObject} to a PEM-encoded PKCS8 string format.
  *
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/key/export'`.
  *
- * @param key Key representation to transform to a PEM-encoded PKCS8 string format.
+ * @example
+ *
+ * ```js
+ * const pkcs8Pem = await jose.exportPKCS8(privateKey)
+ *
+ * console.log(pkcs8Pem)
+ * ```
+ *
+ * @param key Key to export to a PEM-encoded PKCS8 string format.
  */
-export async function exportPKCS8(key: KeyLike): Promise<string> {
+export async function exportPKCS8(
+  key: types.CryptoKey | types.KeyObject,
+): Promise<string> {
   return exportPrivate(key);
 }
 
 /**
- * Exports a runtime-specific key representation (KeyLike) to a JWK.
+ * Exports a {@link !CryptoKey}, {@link !KeyObject}, or {@link !Uint8Array} to a JWK.
  *
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/key/export'`.
  *
- * @param key Key representation to export as JWK.
+ * @example
+ *
+ * ```js
+ * const privateJwk = await jose.exportJWK(privateKey)
+ * const publicJwk = await jose.exportJWK(publicKey)
+ *
+ * console.log(privateJwk)
+ * console.log(publicJwk)
+ * ```
+ *
+ * @param key Key to export as JWK.
  */
-export async function exportJWK(key: KeyLike | Uint8Array): Promise<JWK> {
+export async function exportJWK(
+  key: types.CryptoKey | types.KeyObject | Uint8Array,
+): Promise<types.JWK> {
   return keyToJWK(key);
 }

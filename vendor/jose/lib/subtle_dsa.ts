@@ -1,9 +1,6 @@
-import { JOSENotSupported } from "../util/errors.ts";
+import { JOSENotSupported } from "../util/errors.js";
 
-export default function subtleDsa(
-  alg: string,
-  algorithm: KeyAlgorithm | EcKeyAlgorithm,
-) {
+export default (alg: string, algorithm: KeyAlgorithm | EcKeyAlgorithm) => {
   const hash = `SHA-${alg.slice(-3)}`;
   switch (alg) {
     case "HS256":
@@ -13,8 +10,11 @@ export default function subtleDsa(
     case "PS256":
     case "PS384":
     case "PS512":
-      // @ts-expect-error
-      return { hash, name: "RSA-PSS", saltLength: alg.slice(-3) >> 3 };
+      return {
+        hash,
+        name: "RSA-PSS",
+        saltLength: parseInt(alg.slice(-3), 10) >> 3,
+      };
     case "RS256":
     case "RS384":
     case "RS512":
@@ -27,11 +27,12 @@ export default function subtleDsa(
         name: "ECDSA",
         namedCurve: (algorithm as EcKeyAlgorithm).namedCurve,
       };
+    case "Ed25519": // Fall through
     case "EdDSA":
-      return { name: algorithm.name };
+      return { name: "Ed25519" };
     default:
       throw new JOSENotSupported(
         `alg ${alg} is not supported either by JOSE or your javascript runtime`,
       );
   }
-}
+};

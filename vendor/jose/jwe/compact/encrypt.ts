@@ -1,16 +1,29 @@
-import { FlattenedEncrypt } from "../flattened/encrypt.ts";
-import type {
-  CompactJWEHeaderParameters,
-  EncryptOptions,
-  JWEKeyManagementHeaderParameters,
-  KeyLike,
-} from "../../types.d.ts";
+/**
+ * Encrypting JSON Web Encryption (JWE) in Compact Serialization
+ *
+ * @module
+ */
+
+import type * as types from "../../types.d.ts";
+import { FlattenedEncrypt } from "../flattened/encrypt.js";
 
 /**
  * The CompactEncrypt class is used to build and encrypt Compact JWE strings.
  *
  * This class is exported (as a named export) from the main `'jose'` module entry point as well as
  * from its subpath export `'jose/jwe/compact/encrypt'`.
+ *
+ * @example
+ *
+ * ```js
+ * const jwe = await new jose.CompactEncrypt(
+ *   new TextEncoder().encode('It’s a dangerous business, Frodo, going out your door.'),
+ * )
+ *   .setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM' })
+ *   .encrypt(publicKey)
+ *
+ * console.log(jwe)
+ * ```
  */
 export class CompactEncrypt {
   private _flattened: FlattenedEncrypt;
@@ -53,7 +66,7 @@ export class CompactEncrypt {
    *
    * @param protectedHeader JWE Protected Header object.
    */
-  setProtectedHeader(protectedHeader: CompactJWEHeaderParameters): this {
+  setProtectedHeader(protectedHeader: types.CompactJWEHeaderParameters): this {
     this._flattened.setProtectedHeader(protectedHeader);
     return this;
   }
@@ -66,7 +79,7 @@ export class CompactEncrypt {
    * @param parameters JWE Key Management parameters.
    */
   setKeyManagementParameters(
-    parameters: JWEKeyManagementHeaderParameters,
+    parameters: types.JWEKeyManagementHeaderParameters,
   ): this {
     this._flattened.setKeyManagementParameters(parameters);
     return this;
@@ -80,8 +93,8 @@ export class CompactEncrypt {
    * @param options JWE Encryption options.
    */
   async encrypt(
-    key: KeyLike | Uint8Array,
-    options?: EncryptOptions,
+    key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+    options?: types.EncryptOptions,
   ): Promise<string> {
     const jwe = await this._flattened.encrypt(key, options);
 

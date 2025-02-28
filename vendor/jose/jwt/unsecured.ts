@@ -1,18 +1,21 @@
-import * as base64url from "../runtime/base64url.ts";
+/**
+ * Unsecured (unsigned & unencrypted) JSON Web Tokens (JWT)
+ *
+ * @module
+ */
 
-import type {
-  JWSHeaderParameters,
-  JWTClaimVerificationOptions,
-  JWTPayload,
-} from "../types.d.ts";
-import { decoder } from "../lib/buffer_utils.ts";
-import { JWTInvalid } from "../util/errors.ts";
-import jwtPayload from "../lib/jwt_claims_set.ts";
-import { ProduceJWT } from "./produce.ts";
+import * as b64u from "../util/base64url.js";
 
-export interface UnsecuredResult<PayloadType = JWTPayload> {
-  payload: PayloadType & JWTPayload;
-  header: JWSHeaderParameters;
+import type * as types from "../types.d.ts";
+import { decoder } from "../lib/buffer_utils.js";
+import { JWTInvalid } from "../util/errors.js";
+import jwtPayload from "../lib/jwt_claims_set.js";
+import { ProduceJWT } from "./produce.js";
+
+/** Result of decoding an Unsecured JWT. */
+export interface UnsecuredResult<PayloadType = types.JWTPayload> {
+  payload: PayloadType & types.JWTPayload;
+  header: types.JWSHeaderParameters;
 }
 
 /**
@@ -20,12 +23,40 @@ export interface UnsecuredResult<PayloadType = JWTPayload> {
  *
  * This class is exported (as a named export) from the main `'jose'` module entry point as well as
  * from its subpath export `'jose/jwt/unsecured'`.
+ *
+ * @example
+ *
+ * Encoding
+ *
+ * ```js
+ * const unsecuredJwt = new jose.UnsecuredJWT({ 'urn:example:claim': true })
+ *   .setIssuedAt()
+ *   .setIssuer('urn:example:issuer')
+ *   .setAudience('urn:example:audience')
+ *   .setExpirationTime('2h')
+ *   .encode()
+ *
+ * console.log(unsecuredJwt)
+ * ```
+ *
+ * @example
+ *
+ * Decoding
+ *
+ * ```js
+ * const payload = jose.UnsecuredJWT.decode(unsecuredJwt, {
+ *   issuer: 'urn:example:issuer',
+ *   audience: 'urn:example:audience',
+ * })
+ *
+ * console.log(payload)
+ * ```
  */
 export class UnsecuredJWT extends ProduceJWT {
   /** Encodes the Unsecured JWT. */
   encode(): string {
-    const header = base64url.encode(JSON.stringify({ alg: "none" }));
-    const payload = base64url.encode(JSON.stringify(this._payload));
+    const header = b64u.encode(JSON.stringify({ alg: "none" }));
+    const payload = b64u.encode(JSON.stringify(this._payload));
 
     return `${header}.${payload}.`;
   }
@@ -36,9 +67,9 @@ export class UnsecuredJWT extends ProduceJWT {
    * @param jwt Unsecured JWT to decode the payload of.
    * @param options JWT Claims Set validation options.
    */
-  static decode<PayloadType = JWTPayload>(
+  static decode<PayloadType = types.JWTPayload>(
     jwt: string,
-    options?: JWTClaimVerificationOptions,
+    options?: types.JWTClaimVerificationOptions,
   ): UnsecuredResult<PayloadType> {
     if (typeof jwt !== "string") {
       throw new JWTInvalid("Unsecured JWT must be a string");
@@ -50,9 +81,9 @@ export class UnsecuredJWT extends ProduceJWT {
       throw new JWTInvalid("Invalid Unsecured JWT");
     }
 
-    let header: JWSHeaderParameters;
+    let header: types.JWSHeaderParameters;
     try {
-      header = JSON.parse(decoder.decode(base64url.decode(encodedHeader)));
+      header = JSON.parse(decoder.decode(b64u.decode(encodedHeader)));
       if (header.alg !== "none") throw new Error();
     } catch {
       throw new JWTInvalid("Invalid Unsecured JWT");
@@ -60,7 +91,7 @@ export class UnsecuredJWT extends ProduceJWT {
 
     const payload = jwtPayload(
       header,
-      base64url.decode(encodedPayload),
+      b64u.decode(encodedPayload),
       options,
     ) as UnsecuredResult<PayloadType>["payload"];
 

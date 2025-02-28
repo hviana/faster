@@ -1,31 +1,44 @@
-import { encode as base64url } from "../../runtime/base64url.ts";
-import sign from "../../runtime/sign.ts";
+/**
+ * Signing JSON Web Signature (JWS) in Flattened JSON Serialization
+ *
+ * @module
+ */
 
-import isDisjoint from "../../lib/is_disjoint.ts";
-import { JWSInvalid } from "../../util/errors.ts";
-import { concat, decoder, encoder } from "../../lib/buffer_utils.ts";
-import type {
-  FlattenedJWS,
-  JWK,
-  JWSHeaderParameters,
-  KeyLike,
-  SignOptions,
-} from "../../types.d.ts";
-import { checkKeyTypeWithJwk } from "../../lib/check_key_type.ts";
-import validateCrit from "../../lib/validate_crit.ts";
+import type * as types from "../../types.d.ts";
+import { encode as b64u } from "../../util/base64url.js";
+import sign from "../../lib/sign.js";
+
+import isDisjoint from "../../lib/is_disjoint.js";
+import { JWSInvalid } from "../../util/errors.js";
+import { concat, decoder, encoder } from "../../lib/buffer_utils.js";
+import checkKeyType from "../../lib/check_key_type.js";
+import validateCrit from "../../lib/validate_crit.js";
+import normalizeKey from "../../lib/normalize_key.js";
 
 /**
  * The FlattenedSign class is used to build and sign Flattened JWS objects.
  *
  * This class is exported (as a named export) from the main `'jose'` module entry point as well as
  * from its subpath export `'jose/jws/flattened/sign'`.
+ *
+ * @example
+ *
+ * ```js
+ * const jws = await new jose.FlattenedSign(
+ *   new TextEncoder().encode('It’s a dangerous business, Frodo, going out your door.'),
+ * )
+ *   .setProtectedHeader({ alg: 'ES256' })
+ *   .sign(privateKey)
+ *
+ * console.log(jws)
+ * ```
  */
 export class FlattenedSign {
   private _payload: Uint8Array;
 
-  private _protectedHeader!: JWSHeaderParameters;
+  private _protectedHeader!: types.JWSHeaderParameters;
 
-  private _unprotectedHeader!: JWSHeaderParameters;
+  private _unprotectedHeader!: types.JWSHeaderParameters;
 
   /** @param payload Binary representation of the payload to sign. */
   constructor(payload: Uint8Array) {
@@ -40,7 +53,7 @@ export class FlattenedSign {
    *
    * @param protectedHeader JWS Protected Header.
    */
-  setProtectedHeader(protectedHeader: JWSHeaderParameters): this {
+  setProtectedHeader(protectedHeader: types.JWSHeaderParameters): this {
     if (this._protectedHeader) {
       throw new TypeError("setProtectedHeader can only be called once");
     }
@@ -53,7 +66,7 @@ export class FlattenedSign {
    *
    * @param unprotectedHeader JWS Unprotected Header.
    */
-  setUnprotectedHeader(unprotectedHeader: JWSHeaderParameters): this {
+  setUnprotectedHeader(unprotectedHeader: types.JWSHeaderParameters): this {
     if (this._unprotectedHeader) {
       throw new TypeError("setUnprotectedHeader can only be called once");
     }
@@ -69,9 +82,9 @@ export class FlattenedSign {
    * @param options JWS Sign options.
    */
   async sign(
-    key: KeyLike | Uint8Array | JWK,
-    options?: SignOptions,
-  ): Promise<FlattenedJWS> {
+    key: types.CryptoKey | types.KeyObject | types.JWK | Uint8Array,
+    options?: types.SignOptions,
+  ): Promise<types.FlattenedJWS> {
     if (!this._protectedHeader && !this._unprotectedHeader) {
       throw new JWSInvalid(
         "either setProtectedHeader or setUnprotectedHeader must be called before #sign()",
@@ -84,7 +97,7 @@ export class FlattenedSign {
       );
     }
 
-    const joseHeader: JWSHeaderParameters = {
+    const joseHeader: types.JWSHeaderParameters = {
       ...this._protectedHeader,
       ...this._unprotectedHeader,
     };
@@ -115,17 +128,17 @@ export class FlattenedSign {
       );
     }
 
-    checkKeyTypeWithJwk(alg, key, "sign");
+    checkKeyType(alg, key, "sign");
 
     let payload = this._payload;
     if (b64) {
-      payload = encoder.encode(base64url(payload));
+      payload = encoder.encode(b64u(payload));
     }
 
     let protectedHeader: Uint8Array;
     if (this._protectedHeader) {
       protectedHeader = encoder.encode(
-        base64url(JSON.stringify(this._protectedHeader)),
+        b64u(JSON.stringify(this._protectedHeader)),
       );
     } else {
       protectedHeader = encoder.encode("");
@@ -133,10 +146,11 @@ export class FlattenedSign {
 
     const data = concat(protectedHeader, encoder.encode("."), payload);
 
-    const signature = await sign(alg, key, data);
+    const k = await normalizeKey(key, alg);
+    const signature = await sign(alg, k, data);
 
-    const jws: FlattenedJWS = {
-      signature: base64url(signature),
+    const jws: types.FlattenedJWS = {
+      signature: b64u(signature),
       payload: "",
     };
 

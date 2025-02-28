@@ -1,18 +1,18 @@
-import type {
-  FlattenedJWSInput,
-  JSONWebKeySet,
-  JWK,
-  JWSHeaderParameters,
-  KeyLike,
-} from "../types.d.ts";
-import { importJWK } from "../key/import.ts";
+/**
+ * Verification using a JSON Web Key Set (JWKS) available locally
+ *
+ * @module
+ */
+
+import type * as types from "../types.d.ts";
+import { importJWK } from "../key/import.js";
 import {
   JOSENotSupported,
   JWKSInvalid,
   JWKSMultipleMatchingKeys,
   JWKSNoMatchingKey,
-} from "../util/errors.ts";
-import isObject from "../lib/is_object.ts";
+} from "../util/errors.js";
+import isObject from "../lib/is_object.js";
 
 function getKtyFromAlg(alg: unknown) {
   switch (typeof alg === "string" && alg.slice(0, 2)) {
@@ -30,11 +30,11 @@ function getKtyFromAlg(alg: unknown) {
   }
 }
 
-interface Cache<KeyLikeType extends KeyLike = KeyLike> {
-  [alg: string]: KeyLikeType;
+interface Cache {
+  [alg: string]: types.CryptoKey;
 }
 
-function isJWKSLike(jwks: unknown): jwks is JSONWebKeySet {
+function isJWKSLike(jwks: unknown): jwks is types.JSONWebKeySet {
   return (
     jwks &&
     typeof jwks === "object" &&
@@ -46,36 +46,34 @@ function isJWKSLike(jwks: unknown): jwks is JSONWebKeySet {
 }
 
 function isJWKLike(key: unknown) {
-  return isObject<JWK>(key);
+  return isObject<types.JWK>(key);
 }
 
 function clone<T>(obj: T): T {
-  // @ts-ignore
   if (typeof structuredClone === "function") {
-    // @ts-ignore
     return structuredClone(obj);
   }
 
   return JSON.parse(JSON.stringify(obj));
 }
 
-class LocalJWKSet<KeyLikeType extends KeyLike = KeyLike> {
-  private _jwks?: JSONWebKeySet;
+class LocalJWKSet {
+  private _jwks?: types.JSONWebKeySet;
 
-  private _cached: WeakMap<JWK, Cache<KeyLikeType>> = new WeakMap();
+  private _cached: WeakMap<types.JWK, Cache> = new WeakMap();
 
   constructor(jwks: unknown) {
     if (!isJWKSLike(jwks)) {
       throw new JWKSInvalid("JSON Web Key Set malformed");
     }
 
-    this._jwks = clone<JSONWebKeySet>(jwks);
+    this._jwks = clone<types.JSONWebKeySet>(jwks);
   }
 
   async getKey(
-    protectedHeader?: JWSHeaderParameters,
-    token?: FlattenedJWSInput,
-  ): Promise<KeyLikeType> {
+    protectedHeader?: types.JWSHeaderParameters,
+    token?: types.FlattenedJWSInput,
+  ): Promise<types.CryptoKey> {
     const { alg, kid } = { ...protectedHeader, ...token?.header };
     const kty = getKtyFromAlg(alg);
 
@@ -103,25 +101,21 @@ class LocalJWKSet<KeyLikeType extends KeyLike = KeyLike> {
         candidate = jwk.key_ops.includes("verify");
       }
 
-      // filter out non-applicable OKP Sub Types
-      if (candidate && alg === "EdDSA") {
-        candidate = jwk.crv === "Ed25519" || jwk.crv === "Ed448";
-      }
-
-      // filter out non-applicable EC curves
+      // filter out non-applicable curves / sub types
       if (candidate) {
         switch (alg) {
           case "ES256":
             candidate = jwk.crv === "P-256";
-            break;
-          case "ES256K":
-            candidate = jwk.crv === "secp256k1";
             break;
           case "ES384":
             candidate = jwk.crv === "P-384";
             break;
           case "ES512":
             candidate = jwk.crv === "P-521";
+            break;
+          case "Ed25519": // Fall through
+          case "EdDSA":
+            candidate = jwk.crv === "Ed25519";
             break;
         }
       }
@@ -141,7 +135,7 @@ class LocalJWKSet<KeyLikeType extends KeyLike = KeyLike> {
       error[Symbol.asyncIterator] = async function* () {
         for (const jwk of candidates) {
           try {
-            yield await importWithAlgCache<KeyLikeType>(_cached, jwk, alg!);
+            yield await importWithAlgCache(_cached, jwk, alg!);
           } catch {}
         }
       };
@@ -149,18 +143,18 @@ class LocalJWKSet<KeyLikeType extends KeyLike = KeyLike> {
       throw error;
     }
 
-    return importWithAlgCache<KeyLikeType>(this._cached, jwk, alg!);
+    return importWithAlgCache(this._cached, jwk, alg!);
   }
 }
 
-async function importWithAlgCache<KeyLikeType extends KeyLike = KeyLike>(
-  cache: WeakMap<JWK, Cache<KeyLikeType>>,
-  jwk: JWK,
+async function importWithAlgCache(
+  cache: WeakMap<types.JWK, Cache>,
+  jwk: types.JWK,
   alg: string,
 ) {
   const cached = cache.get(jwk) || cache.set(jwk, {}).get(jwk)!;
   if (cached[alg] === undefined) {
-    const key = await importJWK<KeyLikeType>({ ...jwk, ext: true }, alg);
+    const key = await importJWK({ ...jwk, ext: true }, alg);
 
     if (key instanceof Uint8Array || key.type !== "public") {
       throw new JWKSInvalid("JSON Web Key Set members must be public keys");
@@ -191,20 +185,81 @@ async function importWithAlgCache<KeyLikeType extends KeyLike = KeyLike>(
  * This function is exported (as a named export) from the main `'jose'` module entry point as well
  * as from its subpath export `'jose/jwks/local'`.
  *
+ * @example
+ *
+ * ```js
+ * const JWKS = jose.createLocalJWKSet({
+ *   keys: [
+ *     {
+ *       kty: 'RSA',
+ *       e: 'AQAB',
+ *       n: '12oBZRhCiZFJLcPg59LkZZ9mdhSMTKAQZYq32k_ti5SBB6jerkh-WzOMAO664r_qyLkqHUSp3u5SbXtseZEpN3XPWGKSxjsy-1JyEFTdLSYe6f9gfrmxkUF_7DTpq0gn6rntP05g2-wFW50YO7mosfdslfrTJYWHFhJALabAeYirYD7-9kqq9ebfFMF4sRRELbv9oi36As6Q9B3Qb5_C1rAzqfao_PCsf9EPsTZsVVVkA5qoIAr47lo1ipfiBPxUCCNSdvkmDTYgvvRm6ZoMjFbvOtgyts55fXKdMWv7I9HMD5HwE9uW839PWA514qhbcIsXEYSFMPMV6fnlsiZvQQ',
+ *       alg: 'PS256',
+ *     },
+ *     {
+ *       crv: 'P-256',
+ *       kty: 'EC',
+ *       x: 'ySK38C1jBdLwDsNWKzzBHqKYEE5Cgv-qjWvorUXk9fw',
+ *       y: '_LeQBw07cf5t57Iavn4j-BqJsAD1dpoz8gokd3sBsOo',
+ *       alg: 'ES256',
+ *     },
+ *   ],
+ * })
+ *
+ * const { payload, protectedHeader } = await jose.jwtVerify(jwt, JWKS, {
+ *   issuer: 'urn:example:issuer',
+ *   audience: 'urn:example:audience',
+ * })
+ * console.log(protectedHeader)
+ * console.log(payload)
+ * ```
+ *
+ * @example
+ *
+ * Opting-in to multiple JWKS matches using `createLocalJWKSet`
+ *
+ * ```js
+ * const options = {
+ *   issuer: 'urn:example:issuer',
+ *   audience: 'urn:example:audience',
+ * }
+ * const { payload, protectedHeader } = await jose
+ *   .jwtVerify(jwt, JWKS, options)
+ *   .catch(async (error) => {
+ *     if (error?.code === 'ERR_JWKS_MULTIPLE_MATCHING_KEYS') {
+ *       for await (const publicKey of error) {
+ *         try {
+ *           return await jose.jwtVerify(jwt, publicKey, options)
+ *         } catch (innerError) {
+ *           if (innerError?.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+ *             continue
+ *           }
+ *           throw innerError
+ *         }
+ *       }
+ *       throw new jose.errors.JWSSignatureVerificationFailed()
+ *     }
+ *
+ *     throw error
+ *   })
+ * console.log(protectedHeader)
+ * console.log(payload)
+ * ```
+ *
  * @param jwks JSON Web Key Set formatted object.
  */
-export function createLocalJWKSet<KeyLikeType extends KeyLike = KeyLike>(
-  jwks: JSONWebKeySet,
+export function createLocalJWKSet(
+  jwks: types.JSONWebKeySet,
 ): (
-  protectedHeader?: JWSHeaderParameters,
-  token?: FlattenedJWSInput,
-) => Promise<KeyLikeType> {
-  const set = new LocalJWKSet<KeyLikeType>(jwks);
+  protectedHeader?: types.JWSHeaderParameters,
+  token?: types.FlattenedJWSInput,
+) => Promise<types.CryptoKey> {
+  const set = new LocalJWKSet(jwks);
 
   const localJWKSet = async (
-    protectedHeader?: JWSHeaderParameters,
-    token?: FlattenedJWSInput,
-  ): Promise<KeyLikeType> => set.getKey(protectedHeader, token);
+    protectedHeader?: types.JWSHeaderParameters,
+    token?: types.FlattenedJWSInput,
+  ): Promise<types.CryptoKey> => set.getKey(protectedHeader, token);
 
   Object.defineProperties(localJWKSet, {
     jwks: {
