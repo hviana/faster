@@ -883,6 +883,8 @@ sudo nano /etc/systemd/system/my-deno-app.service
 Description=My Deno App
 
 [Service]
+Type=simple
+User=ubuntu
 WorkingDirectory=/home/ubuntu/my-deno-app
 ExecStart=/home/ubuntu/my-deno-app/run-server.sh
 TimeoutSec=30
