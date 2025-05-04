@@ -6,8 +6,8 @@ cel: +55 (41) 99999-4664
 */
 
 import { Context, NextFunc } from "../server.ts";
-import { generateSecret, jwtVerify, SignJWT } from "../deps.ts";
-const randomKey = await generateSecret("HS256");
+import { jose } from "../deps.ts";
+const randomKey = await jose.generateSecret("HS256");
 export class Token {
   static _configs: any = {
     key: randomKey,
@@ -23,7 +23,7 @@ export class Token {
     Token._configs.key = (new TextEncoder()).encode(secret);
   }
   static async getPayload(token: string): Promise<any> {
-    const { payload, protectedHeader } = await jwtVerify(
+    const { payload, protectedHeader } = await jose.jwtVerify(
       token,
       Token._configs.key,
     );
@@ -51,7 +51,7 @@ export class Token {
     data: any = {},
     exp = Token._configs.oneHour,
   ): Promise<string> {
-    const jwt = await new SignJWT(data)
+    const jwt = await new jose.SignJWT(data)
       .setProtectedHeader({ alg: Token._configs.alg })
       .setIssuedAt()
       .setIssuer(Token._configs.issuer)
