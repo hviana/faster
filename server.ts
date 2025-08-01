@@ -142,7 +142,7 @@ export class Server {
   static getClientIp(
     req: Request,
     info: { remoteAddr: Deno.Addr | Record<any, any> } = { remoteAddr: {} },
-  ) {
+  ): string {
     const fwd = req.headers.get("forwarded");
     if (fwd) {
       const m = fwd.match(/for=(?:(?:"([^"]+)")|\[([^\]]+)\]|([^;,\s]+))/i);
