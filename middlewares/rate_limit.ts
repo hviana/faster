@@ -5,7 +5,7 @@ Page: https://sites.google.com/view/henriqueviana
 cel: +55 (41) 99999-4664
 */
 
-import { Context, NextFunc, RouteFn } from "../server.ts";
+import { Context, NextFunc, RouteFn, Server } from "../server.ts";
 
 interface RateLimitOptions {
   attempts?: number;
@@ -18,7 +18,7 @@ const defaultRateLimitOptions: RateLimitOptions = {
   attempts: 30,
   interval: 10,
   maxTableSize: 100000, //be careful, table uses a lot of memory
-  id: (ctx: Context) => ctx.req.headers.get("Host")!,
+  id: (ctx: Context) => Server.getClientIp(ctx.req),
 };
 
 function clearMap(

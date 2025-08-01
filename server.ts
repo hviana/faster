@@ -139,6 +139,27 @@ export class Server {
     Server.kv = kv;
     Server.kvFs = new DenoKvFs(Server.kv);
   }
+  static getClientIp(
+    req: Request,
+    info: { remoteAddr: Deno.Addr | Record<any, any> } = { remoteAddr: {} },
+  ) {
+    const fwd = req.headers.get("forwarded");
+    if (fwd) {
+      const m = fwd.match(/for=(?:(?:"([^"]+)")|\[([^\]]+)\]|([^;,\s]+))/i);
+      const ip = m?.[1] || m?.[2] || m?.[3];
+      if (ip) return ip;
+    }
+    const xff = req.headers.get("x-forwarded-for");
+    if (xff) {
+      const ip = xff.split(",")[0].trim();
+      if (ip) return ip;
+    }
+    const xrip = req.headers.get("x-real-ip");
+    if (xrip) return xrip;
+
+    const ra = info.remoteAddr as Deno.NetAddr;
+    return "hostname" in ra ? ra.hostname : "unknown";
+  }
   #ac = new AbortController();
   // NOTE: This is transpiled into the constructor, therefore equivalent to this.routes = [];
   #routes: Route[] = [];
